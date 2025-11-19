@@ -101,11 +101,7 @@ def nueva_operacion():
     """
     global historial
     total_ = 0.0
-    if len(historial) == 0:
-        pos_his = len(historial)
-        
-    elif len(historial) > 0:
-        pos_his = len(historial)
+    pos_his = len(historial)
     while True:
         try:
             x = peticion_de_valor(total_, "a OPERAR ")
