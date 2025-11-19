@@ -6,101 +6,6 @@
 
 historial = []
 
-def SumaF(pos_his : int, total_ : float):
-    """
-    Suma el valor recibido al valor global de la operacion
-    
-    Args:
-        pos_his : int       Posicion de la operacion en el historial
-        total_  : float     Valor total de la operacion 
-    """
-    while True:
-        try:
-            x = peticion_de_valor(total_, "a SUMAR ")
-            if x == "s":
-                main()
-            else:
-                x = float(x)
-                total_ += x
-                guardar_historial(pos_his, " + ", x, total_)
-                operacion = peticion_de_operacion(total_)
-                menu_operaciones(operacion, pos_his, total_)
-
-        except ValueError:
-            print("INGRESE UN NUMERO PARA LA OPERACION")
-
-def RestaF(pos_his : int, total_ : float):
-    """
-    Resta el valor recibido al valor global de la operacion
-    
-    Args:
-        pos_his : int       Posicion de la operacion en el historial
-        total_  : float     Valor total de la operacion 
-    """
-    while True:
-        try:
-            x = peticion_de_valor(total_, "a RESTAR ")
-            if x == "s":
-                main()
-            else:
-                x = float(x)
-                total_ -= x
-                guardar_historial(pos_his," - ", x, total_)
-                operacion = peticion_de_operacion(total_)
-                menu_operaciones(operacion, pos_his, total_)
-
-        except ValueError:
-            print("INGRESE UN NUMERO PARA LA OPERACION")
-
-def MultiF(pos_his : int, total_ : float):
-    """
-    Multiplica el valor recibido al valor global de la operacion
-    
-    Args:
-        pos_his : int       Posicion de la operacion en el historial
-        total_  : float     Valor total de la operacion 
-    """
-    while True:
-        try:
-            x = peticion_de_valor(total_, "a MULTIPLICAR ")
-            if x == "s":
-                main()
-            else:
-                x = float(x)
-                total_ *= x
-                guardar_historial(pos_his," * ", x, total_)
-                operacion = peticion_de_operacion(total_)
-                menu_operaciones(operacion, pos_his, total_)
-                
-
-        except ValueError:
-            print("INGRESE UN NUMERO PARA LA OPERACION")
-
-def DiviF(pos_his : int, total_ : float):
-    """
-    Divide el valor recibido al valor global de la operacion
-    
-    Args:
-        pos_his : int       Posicion de la operacion en el historial
-        total_  : float     Valor total de la operacion 
-    """
-    while True:
-        try:
-            x = peticion_de_valor(total_, "a DIVIDIR ")
-            if x == "s":
-                main()
-            else:
-                x = float(x)
-                total_ /= x
-                guardar_historial(pos_his," / ", x, total_)
-                operacion = peticion_de_operacion(total_)
-                menu_operaciones(operacion, pos_his, total_)
-
-        except ValueError:
-            print("INGRESE UN NUMERO PARA LA OPERACION")
-        except ZeroDivisionError:
-            print("El divisor no puede ser igual a 0")
-
 def peticion_de_valor(total_ : float, operacion : str) -> str:
     """
     Solicita el valor para la operacion al usuario
@@ -136,7 +41,7 @@ def peticion_de_operacion(total_ : float) -> str:
         else:
             print("Ingrese un signo de operacion valido! ")
 
-def menu_operaciones(operacion : str, pos_his : int, total_ : float):
+def menu_operaciones(pos_his : int, total_ : float):
     """
     Menu encargado de realizar la siguiente operacion basado en el operador ingresado
     
@@ -145,16 +50,35 @@ def menu_operaciones(operacion : str, pos_his : int, total_ : float):
         pos_his   : int         Posicion de la operacion en el historial
         total_    : float       Total de la operacion en curso
     """
-    if operacion == "+":
-        SumaF(pos_his, total_)
-    elif operacion == "-":
-        RestaF(pos_his, total_)
-    elif operacion == "*":
-        MultiF(pos_his, total_)
-    elif operacion == "/":
-        DiviF(pos_his, total_)
-    elif operacion == "x":
-        menu_principal()
+    while True:
+        try:
+            operacion = peticion_de_operacion(total_)
+            if operacion == "+":
+                x = peticion_de_valor(total_, "a SUMAR ")
+                x = float(x)
+                total_ += x
+                guardar_historial(pos_his, " + ", x, total_)
+            elif operacion == "-":
+                x = peticion_de_valor(total_, "a RESTAR ")
+                x = float(x)
+                total_ -= x
+                guardar_historial(pos_his," - ", x, total_)
+            elif operacion == "*":
+                x = peticion_de_valor(total_, "a MULTIPLICAR ")
+                x = float(x)
+                total_ *= x
+                guardar_historial(pos_his," * ", x, total_)
+            elif operacion == "/":
+                x = peticion_de_valor(total_, "a DIVIDIR ")
+                x = float(x)
+                total_ /= x
+                guardar_historial(pos_his," / ", x, total_)
+            elif operacion == "x":
+                menu_principal()
+        except ValueError:
+            print("INGRESE UN NUMERO PARA LA OPERACION")
+        except ZeroDivisionError:
+            print("El divisor no puede ser igual a 0")
 
 def guardar_historial(posicion_historial : int, operador : str, valor : float , resultado : float):
     """
@@ -183,16 +107,18 @@ def nueva_operacion():
     elif len(historial) > 0:
         pos_his = len(historial)
     while True:
-        x = peticion_de_valor(total_, "a OPERAR ")
-        if x == "x":
-            menu_operaciones(x, pos_his)
-        elif x != "x":
-            total_ += float(x)
-            historial.append(x)
-            operacion = peticion_de_operacion(total_)
-            menu_operaciones(operacion , pos_his, total_)
-        else:
-            print("Invalido")
+        try:
+            x = peticion_de_valor(total_, "a OPERAR ")
+            if x == "x":
+                menu_operaciones(x, pos_his)
+            elif x != "x":
+                total_ += float(x)
+                historial.append(x)
+                menu_operaciones(pos_his, total_)
+            else:
+                print("Invalido")
+        except ValueError:
+            print("INGRESE UN NUMERO PARA LA OPERACION")
 
 def visualizar_historial(historial : list):
     """
