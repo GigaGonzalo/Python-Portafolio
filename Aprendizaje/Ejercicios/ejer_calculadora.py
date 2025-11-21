@@ -4,8 +4,6 @@
 #**********************************************************************************************#
 #**********************************************************************************************#
 
-historial = []
-
 def peticion_de_valor(total_ : float, operacion : str) -> str:
     """
     Solicita el valor para la operacion al usuario
@@ -17,9 +15,14 @@ def peticion_de_valor(total_ : float, operacion : str) -> str:
     Returns:
         Valor ingresado, en caso de alfabeto, en minusculas
     """
-    print(f"Ingrese el valor numerico {operacion}:         Total = {total_}    x para salir ")
-    x = input().lower()
-    return x
+    while True:
+        print(f"Ingrese el valor numerico {operacion}:         Total = {total_} ")
+        x = input().lower()
+        try:
+            x = float(x)
+            return x
+        except ValueError:
+            print("INGRESE SOLO VALORES NUMERICOS!")
 
 def peticion_de_operacion(total_ : float) -> str:
     """
@@ -41,7 +44,7 @@ def peticion_de_operacion(total_ : float) -> str:
         else:
             print("Ingrese un signo de operacion valido! ")
 
-def menu_operaciones(pos_his : int, total_ : float):
+def menu_operaciones(pos_his : int, total_ : float, historial_proceso : list):
     """
     Menu encargado de realizar la siguiente operacion basado en el operador ingresado
     
@@ -55,64 +58,64 @@ def menu_operaciones(pos_his : int, total_ : float):
             operacion = peticion_de_operacion(total_)
             if operacion == "+":
                 x = peticion_de_valor(total_, "a SUMAR ")
-                x = float(x)
                 total_ += x
-                guardar_historial(pos_his, " + ", x, total_)
+                historial_proceso = guardar_historial(pos_his, " + ", x, total_)
             elif operacion == "-":
                 x = peticion_de_valor(total_, "a RESTAR ")
-                x = float(x)
                 total_ -= x
-                guardar_historial(pos_his," - ", x, total_)
+                historial_proceso = guardar_historial(pos_his," - ", x, total_)
             elif operacion == "*":
                 x = peticion_de_valor(total_, "a MULTIPLICAR ")
-                x = float(x)
                 total_ *= x
-                guardar_historial(pos_his," * ", x, total_)
+                historial_proceso = guardar_historial(pos_his," * ", x, total_)
             elif operacion == "/":
                 x = peticion_de_valor(total_, "a DIVIDIR ")
-                x = float(x)
                 total_ /= x
-                guardar_historial(pos_his," / ", x, total_)
+                historial_proceso = guardar_historial(pos_his," / ", x, total_)
             elif operacion == "x":
-                menu_principal()
+                menu_principal(historial_proceso)
         except ValueError:
             print("INGRESE UN NUMERO PARA LA OPERACION")
         except ZeroDivisionError:
             print("El divisor no puede ser igual a 0")
 
-def guardar_historial(posicion_historial : int, operador : str, valor : float , resultado : float):
+def guardar_historial(posicion_historial : int, operador : str, valor : float, resultado : float, historial = []):
     """
-    Almacena la operacion en el historial de la sesion
+    Almacena la operacion en el historial de la sesion usando la variable mutable - historial
     
     Args:
         posicion_historial : int    Posicion de la operacion en el historial
         operador           : str    Operador de la operacion
         valor              : float  Valor que se aplico en la operacion
         resultado          : float  Total de la operacion realizada
+        historial          : list   Almacena el historial
     """
-    global historial
-    operacion =  operador + str( float(valor)) + " = " + str(resultado) + " "
-    historial[posicion_historial] += operacion
+    
+    if len(historial) == posicion_historial:
+        operacion =  str(resultado) + " "
+        historial.append(operacion)
+    else:
+        operacion =  operador + str(valor) + " = " + str(resultado) + " "
+        print(historial)
+        historial[posicion_historial] += operacion
+        print(historial)
+    return historial
 
-def nueva_operacion():
+def nueva_operacion(historial_menu : list):
     """
     Inicia una nueva operacion de la calculadora
 
     """
-    global historial
+    historial = historial_menu
     total_ = 0.0
     pos_his = len(historial)
     while True:
         try:
             x = peticion_de_valor(total_, "a OPERAR ")
-            if x == "x":
-                menu_operaciones(x, pos_his)
-            elif x != "x":
-                total_ += float(x)
-                historial.append(x)
-                menu_operaciones(pos_his, total_)
-            else:
-                print("Invalido")
+            total_ += float(x)
+            historial = guardar_historial(pos_his, "" , "", total_ )
+            menu_operaciones(pos_his, total_, historial)
+            
         except ValueError:
             print("INGRESE UN NUMERO PARA LA OPERACION")
 
@@ -130,15 +133,15 @@ def visualizar_historial(historial : list):
     else:
         print("No hay datos en el historial ", len(historial))
 
-    input("Presione x para regresar al menu ")
-    menu_principal()
+    input("Presione enter para regresar al menu ")
+    menu_principal([])
 
-def menu_principal():
+def menu_principal(historial_actual : list):
     """
     Menu principal donde el usuario elige su accion
 
     """
-    global historial
+    historial = historial_actual
     opciones = ["1", "2", "3"]
     print(" "*10 + " Calculadora " + " "*10)
     print("Seleccione una de las siguientes opciones : " + 
@@ -148,7 +151,7 @@ def menu_principal():
     opcion = input("Seleccione : ")
     if opcion in opciones:
         if opcion == "1":
-            nueva_operacion()
+            nueva_operacion(historial)
         elif opcion == "2":
             visualizar_historial(historial)
         elif opcion == "3":
@@ -159,7 +162,7 @@ def main():
     Ejecucion post-validacion
 
     """
-    menu_principal()
+    menu_principal([])
     
 
 if __name__ == "__main__":
