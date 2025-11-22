@@ -3,6 +3,27 @@
 #**********************************************************************************************#
 #**********************************************************************************************#
 #**********************************************************************************************#
+import os
+import json
+
+EXTERNAL = "calculadora_historial.json"
+
+def extraer_historial_externo():
+
+    try:
+        if os.path.exists(EXTERNAL):
+            with open(EXTERNAL, "r", encoding="utf-8") as archivo:
+                return json.load(archivo)
+        else:
+            return []
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"{e}")
+
+def guardar_historial_externo(historial):
+
+    with open(EXTERNAL, "w", encoding="utf-8") as archivo:
+        json.dump(historial, archivo, ensure_ascii=False, indent=2)
+
 
 def peticion_de_valor(total_ : float, operacion : str) -> str:
     """
