@@ -8,8 +8,26 @@ import json
 
 EXTERNAL = "calculadora_historial.json"
 
-def extraer_historial_externo():
+def vaciar_historial():
+    """
+    Verifica si el archivo de historial existe para su eliminacion
+        
+    """ 
+    if os.path.exists(EXTERNAL):
+        os.remove(os.path.abspath(EXTERNAL))
+    else:
+        pass
 
+def extraer_historial_externo():
+    """
+    Devuelve el archivo JSON en formato de lista con el historial
+
+    Returns:
+        Lista con el historial
+        
+    Raises:
+        JSONDecodeError: Si el archivo no se puede cargar
+    """ 
     try:
         if os.path.exists(EXTERNAL):
             with open(EXTERNAL, "r", encoding="utf-8") as archivo:
@@ -19,10 +37,31 @@ def extraer_historial_externo():
     except (json.JSONDecodeError, Exception) as e:
         print(f"{e}")
 
-def guardar_historial_externo(historial):
+def guardar_historial_externo(historial : str, index : int):
+    """
+    Almacena las cadenas de caracteres del historial en el indice correspondiente
+    
+    Args:
+        historial   :   String de la operacion a almacenar
+        index       :   Indice correspondiente del historial
 
-    with open(EXTERNAL, "w", encoding="utf-8") as archivo:
-        json.dump(historial, archivo, ensure_ascii=False, indent=2)
+    Raises:
+        IndexError: Si el indice del historial aun no existe
+        JSONDecodeEror: Si el archivo no se puede guardar
+    """ 
+    historial_ext = extraer_historial_externo()
+    try: 
+        historial_ext[index] += historial
+    except IndexError:
+        historial_ext.append(historial)
+    
+    try:
+        with open(EXTERNAL, "w", encoding="utf-8") as archivo:
+            print(historial_ext)
+            json.dump(historial_ext, archivo, ensure_ascii=False, indent=2)
+
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"{e}")
 
 
 def peticion_de_valor(total_ : float, operacion : str) -> str:
@@ -65,77 +104,77 @@ def peticion_de_operacion(total_ : float) -> str:
         else:
             print("Ingrese un signo de operacion valido! ")
 
-def menu_operaciones(pos_his : int, total_ : float, historial_proceso : list):
+def menu_operaciones(formato, pos_his : int, total_ : float):
     """
     Menu encargado de realizar la siguiente operacion basado en el operador ingresado
     
     Args:
-        operacion : str         Operador de la siguiente operacion
-        pos_his   : int         Posicion de la operacion en el historial
-        total_    : float       Total de la operacion en curso
+        formato     : int         Indicador del formato a guardar
+        pos_his     : int         Posicion de la operacion en el historial
+        total_      : float       Total de la operacion en curso
     """
+    
     while True:
+
         try:
+
             operacion = peticion_de_operacion(total_)
+
             if operacion == "+":
                 x = peticion_de_valor(total_, "a SUMAR ")
                 total_ += x
-                historial_proceso = guardar_historial(pos_his, " + ", x, total_)
+                guardar_historial(formato, pos_his, " + ", x, total_)
             elif operacion == "-":
                 x = peticion_de_valor(total_, "a RESTAR ")
                 total_ -= x
-                historial_proceso = guardar_historial(pos_his," - ", x, total_)
+                guardar_historial(formato, pos_his," - ", x, total_)
             elif operacion == "*":
                 x = peticion_de_valor(total_, "a MULTIPLICAR ")
                 total_ *= x
-                historial_proceso = guardar_historial(pos_his," * ", x, total_)
+                guardar_historial(formato, pos_his," * ", x, total_)
             elif operacion == "/":
                 x = peticion_de_valor(total_, "a DIVIDIR ")
                 total_ /= x
-                historial_proceso = guardar_historial(pos_his," / ", x, total_)
+                guardar_historial(formato, pos_his," / ", x, total_)
             elif operacion == "x":
-                menu_principal(historial_proceso)
+                menu_principal()
+
         except ValueError:
             print("INGRESE UN NUMERO PARA LA OPERACION")
         except ZeroDivisionError:
             print("El divisor no puede ser igual a 0")
 
-def guardar_historial(posicion_historial : int, operador : str, valor : float, resultado : float, historial = []):
+def guardar_historial(formato : int, posicion_historial : int, operador : str, valor : float, resultado : float):
     """
     Almacena la operacion en el historial de la sesion usando la variable mutable - historial
     
     Args:
+        formato            : int    Indicador del formato
         posicion_historial : int    Posicion de la operacion en el historial
         operador           : str    Operador de la operacion
         valor              : float  Valor que se aplico en la operacion
         resultado          : float  Total de la operacion realizada
-        historial          : list   Almacena el historial
     """
-    
-    if len(historial) == posicion_historial:
+    if formato == 0:
         operacion =  str(resultado) + " "
-        historial.append(operacion)
-    else:
+        guardar_historial_externo(operacion, posicion_historial)
+    elif formato == 1:
         operacion =  operador + str(valor) + " = " + str(resultado) + " "
-        print(historial)
-        historial[posicion_historial] += operacion
-        print(historial)
-    return historial
+        guardar_historial_externo(operacion , posicion_historial)
+        
 
-def nueva_operacion(historial_menu : list):
+def nueva_operacion(index):
     """
     Inicia una nueva operacion de la calculadora
 
     """
-    historial = historial_menu
     total_ = 0.0
-    pos_his = len(historial)
     while True:
         try:
             x = peticion_de_valor(total_, "a OPERAR ")
             total_ += float(x)
-            historial = guardar_historial(pos_his, "" , "", total_ )
-            menu_operaciones(pos_his, total_, historial)
+            guardar_historial(0, index, "" , "", total_ )
+            menu_operaciones(1, index, total_)
             
         except ValueError:
             print("INGRESE UN NUMERO PARA LA OPERACION")
@@ -155,14 +194,14 @@ def visualizar_historial(historial : list):
         print("No hay datos en el historial ", len(historial))
 
     input("Presione enter para regresar al menu ")
-    menu_principal([])
+    menu_principal()
 
-def menu_principal(historial_actual : list):
+def menu_principal():
     """
     Menu principal donde el usuario elige su accion
 
     """
-    historial = historial_actual
+    historial = extraer_historial_externo()
     opciones = ["1", "2", "3"]
     print(" "*10 + " Calculadora " + " "*10)
     print("Seleccione una de las siguientes opciones : " + 
@@ -172,10 +211,11 @@ def menu_principal(historial_actual : list):
     opcion = input("Seleccione : ")
     if opcion in opciones:
         if opcion == "1":
-            nueva_operacion(historial)
+            nueva_operacion(len(historial))
         elif opcion == "2":
             visualizar_historial(historial)
         elif opcion == "3":
+            vaciar_historial()
             exit()
 
 def main():
@@ -183,7 +223,8 @@ def main():
     Ejecucion post-validacion
 
     """
-    menu_principal([])
+    vaciar_historial()
+    menu_principal()
     
 
 if __name__ == "__main__":
