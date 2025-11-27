@@ -66,7 +66,7 @@ class Tarea:
         return self.recordatorio
     @property
     def getFechaAlarma(self):
-        fecha = self.fecha_vencimiento_mes + "/" + self.fecha_vencimiento_mes + "/" + self.fecha_vencimiento_año
+        fecha = self.fecha_vencimiento_dia + "/" + self.fecha_vencimiento_mes + "/" + self.fecha_vencimiento_año
         return fecha
     @property
     def getHoraAlarma(self):

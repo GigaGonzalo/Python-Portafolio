@@ -1,7 +1,9 @@
 from tareas import Tarea
 from historial_tareas import Guardador
 from enumeraciones import Importancias, Categorias
+from colorama import init, Fore, Style
 
+init(autoreset=True)
 
 class SistemaTareas:
 
@@ -14,54 +16,59 @@ class SistemaTareas:
         Solicita asignar la categoria de la tarea
         
         """
-        print("SELECCIONE LA CATEGORIA DE LA TAREA")
-        print("1. HOGAR")
-        print("2. ESCUELA")
-        print("3. TRABAJO")
-        print("4. SIN ETIQUETA")
-        cat = input("CATEGORIA = ")
-        if cat in self.opciones_validas_menu:
-            if cat == "1":
-                return Categorias.HOGAR.value
-            elif cat == "2":
-                return Categorias.ESCUELA.value
-            elif cat == "3":
-                return Categorias.TRABAJO.value
-            elif cat == "4":
-                return Categorias.SIN_ETIQUETA.value
-        else:
-            print("Ingrese una opccion valida!!")
+        while True:
+            print(Style.BRIGHT + "SELECCIONE LA CATEGORIA DE LA TAREA")
+            print("1. HOGAR")
+            print("2. ESCUELA")
+            print("3. TRABAJO")
+            print("4. SIN ETIQUETA")
+            cat = input("CATEGORIA = ")
+            if cat in self.opciones_validas_menu:
+                if cat == "1":
+                    return Categorias.HOGAR.value
+                elif cat == "2":
+                    return Categorias.ESCUELA.value
+                elif cat == "3":
+                    return Categorias.TRABAJO.value
+                elif cat == "4":
+                    return Categorias.SIN_ETIQUETA.value
+            else:
+                print(Fore.YELLOW + "⚠️ Ingrese una opccion valida!!")
 
     def importancia_tarea(self) -> str:
         """
         Solicita asignar la importancia de la tarea
         
         """
-        print("SELECCIONE NIVEL DE IMPORTANCIA")
-        print("1. BAJO")
-        print("2. MEDIO")
-        print("3. ALTO")
-        print("4. SIN IMPORTANCIA")
-        cat = input("CATEGORIA = ")
-        if cat in self.opciones_validas_menu:
-            if cat == "1":
-                return Importancias.BAJO.value
-            elif cat == "2":
-                return Importancias,MEDIO.value
-            elif cat == "3":
-                return Importancias.ALTO.value
-            elif cat == "4":
-                return Importancias.SIN_ETIQUETA.value
-        else:
-            print("Ingrese una opccion valida!!")
+        while True:
+            print(Style.BRIGHT + "SELECCIONE NIVEL DE IMPORTANCIA")
+            print("1. BAJO")
+            print("2. MEDIO")
+            print("3. ALTO")
+            print("4. SIN IMPORTANCIA")
+            cat = input("CATEGORIA = ")
+            if cat in self.opciones_validas_menu:
+                if cat == "1":
+                    return Importancias.BAJO.value
+                elif cat == "2":
+                    return Importancias.MEDIO.value
+                elif cat == "3":
+                    return Importancias.ALTO.value
+                elif cat == "4":
+                    return Importancias.SIN_ETIQUETA.value
+            else:
+                print(Fore.YELLOW + "⚠️ Ingrese una opccion valida!!")
 
     def texto_tarea(self) -> str:
         """
         Solicita el texto de la tarea
         
         """
-        t_tarea = input("Ingrese la tarea o pendiente : ")
-        return t_tarea
+        t_tarea = input(Style.BRIGHT + "Ingrese la tarea o pendiente : ")
+        if t_tarea == "":
+            return "Vacio"
+        else:
+            return t_tarea
 
     def recordatorio_tarea(self) -> bool:
         """
@@ -69,11 +76,11 @@ class SistemaTareas:
         
         """
         while True:
-            recordatorio = input("¿Desea crear un recordatorio para esta tarea?     s/n  ").lower()
+            recordatorio = input(Style.BRIGHT + "¿Desea crear un recordatorio para esta tarea?     s/n  ").lower()
             if recordatorio.isalpha() and recordatorio in ("s", "n"):
                 return True if recordatorio == "s" else False
             else:
-                print("Ingrese una opccion valida!!! (s / n)")
+                print(Fore.YELLOW + "⚠️ Ingrese una opccion valida!!! (s / n)")
 
     def fecha_recordatorio(self) -> int:
         """
@@ -91,36 +98,36 @@ class SistemaTareas:
         print("Ingrese la fecha de la alarma en formato 00/00/0000)")
         
         while True:
-            año = input("Ingrese el año : ")
+            año = input(Style.BRIGHT + "Ingrese el año : ")
             try:
                 year = int(año)
                 if 2025 <= year <= 2225:
                     break
                 else:
-                    raise ValueError("Ingrese un valor entre 2025 y 2225")
+                    raise ValueError(Fore.YELLOW + "⚠️ Ingrese un valor entre 2025 y 2225")
             except ValueError as e:
-                print("Ingrese un numero entre (2025 - 2225)")
+                print(Fore.YELLOW + "⚠️ Ingrese un numero entre (2025 - 2225)")
         while True:
-            mes = input("Ingrese el mes de la alarma :")
+            mes = input(Style.BRIGHT + "Ingrese el mes de la alarma :")
             try:
                 month = int(mes)
                 if 0 < month <= 12:
                     break
                 else:
-                    raise ValueError("Ingrese un valor entre 01 y 12")
+                    raise ValueError(Fore.YELLOW + "⚠️ Ingrese un valor entre 01 y 12")
             except ValueError:
-                print("Ingrese un numero entre (01 - 12)")
+                print(Fore.YELLOW + "⚠️ Ingrese un numero entre (01 - 12)")
         while True:
-            dia = input("Ingrese el dia de la alarma :")
+            dia = input(Style.BRIGHT + "Ingrese el dia de la alarma :")
             try:
                 day = int(dia)
-                dia_ultimo = 31 if month == (1,3,5,7,9,11) else 30
+                dia_ultimo = 31 if month in (1,3,5,7,9,11) else 30
                 if 0 < day <= dia_ultimo:
                     break
                 else:
-                    raise ValueError(f"Ingrese un valor entre 01 y {dia_ultimo}")
+                    raise ValueError(Fore.YELLOW + f"⚠️ Ingrese un valor entre 01 y {dia_ultimo}")
             except ValueError:
-                print(f"Ingrese un numero entre (01 - {dia_ultimo})")
+                print(Fore.YELLOW + f"⚠️ Ingrese un numero entre (01 - {dia_ultimo})")
         return (año, mes, dia)
 
     def alarma_tarea(self) -> int:
@@ -138,25 +145,25 @@ class SistemaTareas:
         print("Ingrese la hora de la alarma con formato 24hrs (00:00)")
         
         while True:
-            hrs = input("Ingrese la hora : ")
+            hrs = input(Style.BRIGHT + "Ingrese la hora : ")
             try:
                 f_hrs = int(hrs)
                 if 0 <= f_hrs < 24:
                     break
                 else:
-                    raise ValueError("Ingrese un valor entre 0 y 24")
+                    raise ValueError(Fore.YELLOW + "⚠️ Ingrese un valor entre 0 y 24")
             except ValueError as e:
-                print("Ingrese un numero entre (00 - 23)")
+                print(Fore.YELLOW + "⚠️ Ingrese un numero entre (00 - 23)")
         while True:
-            m = input("Ingrese los minutos de la alarma :")
+            m = input(Style.BRIGHT + "Ingrese los minutos de la alarma :")
             try:
                 f_min = int(m)
                 if 0 <= f_min < 60:
                     break
                 else:
-                    raise ValueError("Ingrese un valor entre 0 y 60")
+                    raise ValueError(Fore.YELLOW + "⚠️ Ingrese un valor entre 0 y 60")
             except ValueError:
-                print("Ingrese un numero entre (00 - 59)")
+                print(Fore.YELLOW + "⚠️ Ingrese un numero entre (00 - 59)")
         return (hrs, m)
         
     def menu_lista_tareas(self, lista_tareas : list):
@@ -178,7 +185,7 @@ class SistemaTareas:
                     else:
                         print()
             else:
-                print("     NADA POR AQUI Y NADA POR ALLA       ")
+                print(Style.BRIGHT + "     NADA POR AQUI Y NADA POR ALLA       ")
             print("Presione x para regresar " + 
             ("O ingrese el numero de la tarea para modificar" if lista_tareas != [] else ""))
             opccion = input("Seleccione : ").lower()
@@ -187,7 +194,7 @@ class SistemaTareas:
             elif opccion.isdecimal() and int(opccion) <= len(lista_tareas):
                 self.menu_nueva_tarea(lista_tareas[int(opccion) - 1])
             else:
-                print("Ingrese una opccion valida!")
+                print(Fore.YELLOW + "⚠️ Ingrese una opccion valida!")
 
     def eliminar_tarea(self, index_eliminar : int):
         """
@@ -201,7 +208,7 @@ class SistemaTareas:
         lista.pop(index_eliminar - 1)
         lista_reindexada = self.reindexado(lista)
         self.guardar._guardar_historial(lista_reindexada)
-        print("TAREA ELIMINADA EXITOSAMENTE!!")
+        print(Fore.RED + "❌ TAREA ELIMINADA EXITOSAMENTE!!")
 
     def reindexado(self, lista_hueco: list) -> list:
         """
@@ -230,9 +237,9 @@ class SistemaTareas:
         lista = self.conversor_total_dic_obj(self.guardar._cargar_historial())
         while True:
             print("*"*15 + " Sistema de Tareas " + "*"*15 + "\n")
-            print("1. Nueva Tarea")
-            print("2. Lista de Tareas")
-            print("3. Salir")
+            print(Style.BRIGHT + "1. Nueva Tarea")
+            print(Style.BRIGHT + "2. Lista de Tareas")
+            print(Style.BRIGHT + "3. Salir")
             opccion = input("Seleccione : ")
 
             if opccion in self.opciones_validas_menu:
@@ -243,7 +250,7 @@ class SistemaTareas:
                 elif opccion == "3":
                     exit()
             else:
-                print("Ingrese una opccion valida!")
+                print(Fore.YELLOW + "⚠️ Ingrese una opccion valida!")
                 
     def menu_nueva_tarea(self, nueva_tarea = None):
         """
@@ -261,7 +268,7 @@ class SistemaTareas:
 
         while True:
             opcciones_validas = ["1","2","3","4","5","6", "x"]
-            print("TAREA")
+            print(Style.BRIGHT + "TAREA")
             print(f"1- Categoria     {nueva_tarea.getCategoria}")
             print(f"2- Importancia   {nueva_tarea.getImportancia}")
             print(f"3- Tarea         {nueva_tarea.getTarea}")
@@ -305,7 +312,7 @@ class SistemaTareas:
                 elif opccion == "6":
                     self.menu_principal()
             else:
-                print("Ingrese una opccion valida!!")
+                print(Fore.YELLOW + "⚠️ Ingrese una opccion valida!!")
 
     def guardar_tarea(self, dic_tarea : dict):
         """
