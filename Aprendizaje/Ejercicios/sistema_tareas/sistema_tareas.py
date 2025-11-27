@@ -1,11 +1,12 @@
 from tareas import Tarea
 from historial_tareas import Guardador
+from enumeraciones import Importancias, Categorias
 
 
 class SistemaTareas:
 
     def __init__(self):
-        self. opciones_validas_menu = ["1", "2", "3"]
+        self.opciones_validas_menu = ["1", "2", "3","4"]
         self.guardar = Guardador()
 
     def categoria_tarea(self):
@@ -17,13 +18,13 @@ class SistemaTareas:
         cat = input("CATEGORIA = ")
         if cat in self.opciones_validas_menu:
             if cat == "1":
-                return "HOGAR"
+                return Categorias.HOGAR.value
             elif cat == "2":
-                return "ESCUELA"
+                return Categorias.ESCUELA.value
             elif cat == "3":
-                return "TRABAJO"
+                return Categorias.TRABAJO.value
             elif cat == "4":
-                return "SIN ETIQUETA"
+                return Categorias.SIN_ETIQUETA.value
         else:
             print("Ingrese una opccion valida!!")
 
@@ -36,13 +37,13 @@ class SistemaTareas:
         cat = input("CATEGORIA = ")
         if cat in self.opciones_validas_menu:
             if cat == "1":
-                return "BAJO"
+                return Importancias.BAJO.value
             elif cat == "2":
-                return "MEDIO"
+                return Importancias,MEDIO.value
             elif cat == "3":
-                return "ALTO"
+                return Importancias.ALTO.value
             elif cat == "4":
-                return "SIN IMPORTANCIA"
+                return Importancias.SIN_ETIQUETA.value
         else:
             print("Ingrese una opccion valida!!")
 
@@ -176,7 +177,6 @@ class SistemaTareas:
                     self.menu_lista_tareas(lista)
                 elif opccion == "3":
                     exit()
-
             else:
                 print("Ingrese una opccion valida!")
                 
