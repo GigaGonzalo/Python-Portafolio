@@ -1,0 +1,1115 @@
+🐍 ¡SQLite PYTHON-O-MATIC! 🐍
+
+¡LLEGÓ LA REVOLUCIÓN EN BASES DE DATOS EMBEBIDAS!
+🎯 ¡SQLite EN PYTHON - PODER DE DATOS LOCAL!
+
+
+# ⚡ ¡BIENVENIDO AL MUNDO DE SQLite! ⚡
+import sqlite3
+import os
+
+print("🎊 ¡SQLite PYTHON - ALMACENA DATOS COMO NUNCA! 🎊")
+print("¿Cansado de archivos de texto? ¿Necesitas una base de datos real?")
+print("¡SQLite lo resuelve TODO! 💫")
+
+🚀 ¡CONCEPTOS BÁSICOS - TU PRIMERA BASE DE DATOS!
+✨ ¿QUÉ ES SQLite? - ¡BASE DE DATOS EN UN ARCHIVO!
+python
+
+"""
+¡SQLite ES INCREÍBLE!:
+
+✅ Base de datos relacional embebida
+✅ No requiere servidor - solo un archivo
+✅ Transacciones ACID completas
+✅ Soporte SQL estándar
+✅ Multiplataforma
+✅ Cero configuración
+"""
+
+# ¡VENTAJAS PRINCIPALES!
+print("🏆 ¡VENTAJAS DE SQLite! 🏆")
+print("🔹 Archivo único - Fácil de copiar y respaldar")
+print("🔹 Sin configuración - Listo para usar")
+print("🔹 Eficiente - Perfecto para aplicaciones locales")
+print("🔹 Confiable - Transacciones ACID")
+print("🔹 Portable - Mismo archivo en cualquier sistema")
+
+# ¡CASOS DE USO IDEALES!
+print("\n🎯 ¡CASOS DE USO PERFECTOS! 🎯")
+print("📱 Aplicaciones móviles")
+print("🖥️ Aplicaciones de escritorio")
+print("🌐 Sitios web de bajo tráfico")
+print("🔧 Herramientas de desarrollo")
+print("📊 Análisis de datos local")
+
+🔧 CONEXIÓN BÁSICA - ¡PRIMER CONTACTO!
+python
+
+import sqlite3
+
+print("🔌 ¡CONEXIÓN A SQLite! 🔌")
+
+# ¡CONECTAR O CREAR BASE DE DATOS!
+def crear_conexion(db_file):
+    """Crea una conexión a la base de datos SQLite"""
+    try:
+        conexion = sqlite3.connect(db_file)
+        print(f"✅ Conexión exitosa a: {db_file}")
+        return conexion
+    except sqlite3.Error as e:
+        print(f"❌ Error al conectar: {e}")
+        return None
+
+# ¡PRIMERA CONEXIÓN!
+nombre_db = "mi_primera_base.db"
+conexion = crear_conexion(nombre_db)
+
+if conexion:
+    # ¡INFORMACIÓN DE LA CONEXIÓN!
+    print(f"📊 Información de la base de datos:")
+    print(f"   Versión SQLite: {sqlite3.sqlite_version}")
+    print(f"   Ruta: {os.path.abspath(nombre_db)}")
+    print(f"   Tamaño: {os.path.getsize(nombre_db)} bytes")
+    
+    # ¡SIEMPRE CERRAR LA CONEXIÓN!
+    conexion.close()
+    print("🔒 Conexión cerrada correctamente")
+
+# ¡ELIMINAR ARCHIVO DE DEMOSTRACIÓN!
+if os.path.exists(nombre_db):
+    os.remove(nombre_db)
+    print("🧹 Archivo de demostración eliminado")
+
+🏗️ ¡CREACIÓN DE TABLAS - ESTRUCTURA DE DATOS!
+📊 DISEÑO DE TABLAS - ¡PLANEA TU BASE DE DATOS!
+
+
+import sqlite3
+
+print("🏗️ ¡CREANDO TABLAS EN SQLite! 🏗️")
+
+def crear_tablas(conexion):
+    """Crea las tablas de la base de datos"""
+    
+    # ¡SENTENCIAS SQL PARA CREAR TABLAS!
+    sql_usuarios = """
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        edad INTEGER,
+        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+        activo BOOLEAN DEFAULT 1
+    );
+    """
+    
+    sql_productos = """
+    CREATE TABLE IF NOT EXISTS productos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        precio REAL NOT NULL,
+        categoria TEXT,
+        stock INTEGER DEFAULT 0,
+        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    """
+    
+    sql_pedidos = """
+    CREATE TABLE IF NOT EXISTS pedidos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER,
+        producto_id INTEGER,
+        cantidad INTEGER NOT NULL,
+        total REAL NOT NULL,
+        fecha_pedido DATETIME DEFAULT CURRENT_TIMESTAMP,
+        estado TEXT DEFAULT 'pendiente',
+        FOREIGN KEY (usuario_id) REFERENCES usuarios (id),
+        FOREIGN KEY (producto_id) REFERENCES productos (id)
+    );
+    """
+    
+    try:
+        cursor = conexion.cursor()
+        
+        # Ejecutar sentencias SQL
+        cursor.execute(sql_usuarios)
+        cursor.execute(sql_productos)
+        cursor.execute(sql_pedidos)
+        
+        conexion.commit()
+        print("✅ Tablas creadas exitosamente!")
+        
+        # Mostrar tablas creadas
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tablas = cursor.fetchall()
+        
+        print("📋 Tablas en la base de datos:")
+        for tabla in tablas:
+            print(f"   🎯 {tabla[0]}")
+            
+    except sqlite3.Error as e:
+        print(f"❌ Error al crear tablas: {e}")
+
+# ¡DEMOSTRACIÓN!
+nombre_db = "tienda.db"
+conexion = sqlite3.connect(nombre_db)
+
+crear_tablas(conexion)
+conexion.close()
+
+# Limpieza
+if os.path.exists(nombre_db):
+    os.remove(nombre_db)
+    print("🧹 Archivo de demostración eliminado")
+
+🔄 ¡CRUD COMPLETO - CREAR, LEER, ACTUALIZAR, ELIMINAR!
+📝 INSERTAR DATOS - ¡CREAR REGISTROS!
+
+
+import sqlite3
+from datetime import datetime
+
+print("📝 ¡INSERTANDO DATOS EN SQLite! 📝")
+
+def demo_insertar_datos():
+    """Demuestra diferentes formas de insertar datos"""
+    
+    conexion = sqlite3.connect("crud_demo.db")
+    cursor = conexion.cursor()
+    
+    # Crear tabla de ejemplo
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        email TEXT UNIQUE,
+        telefono TEXT,
+        ciudad TEXT,
+        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    print("🎯 MÉTODOS DE INSERCIÓN:")
+    
+    # 1. INSERCIÓN SIMPLE
+    print("\n1. 🔹 Inserción simple:")
+    cursor.execute("INSERT INTO clientes (nombre, email, ciudad) VALUES (?, ?, ?)", 
+                  ("Ana García", "ana@python.com", "Madrid"))
+    print("   ✅ Cliente Ana insertado")
+    
+    # 2. INSERCIÓN MÚLTIPLE
+    print("\n2. 🔹 Inserción múltiple:")
+    clientes = [
+        ("Carlos López", "carlos@python.com", "Barcelona"),
+        ("María Rodríguez", "maria@python.com", "Valencia"),
+        ("Pedro Martínez", "pedro@python.com", "Sevilla")
+    ]
+    cursor.executemany("INSERT INTO clientes (nombre, email, ciudad) VALUES (?, ?, ?)", clientes)
+    print("   ✅ 3 clientes insertados")
+    
+    # 3. INSERCIÓN CON DATOS COMPLETOS
+    print("\n3. 🔹 Inserción con datos completos:")
+    cursor.execute("""
+    INSERT INTO clientes (nombre, email, telefono, ciudad) 
+    VALUES (?, ?, ?, ?)
+    """, ("Laura Fernández", "laura@python.com", "+34 600 111 222", "Bilbao"))
+    print("   ✅ Cliente Laura con teléfono insertado")
+    
+    # 4. INSERCIÓN CON RETORNO DE ID
+    print("\n4. 🔹 Inserción con retorno de ID:")
+    cursor.execute("INSERT INTO clientes (nombre, email) VALUES (?, ?)", 
+                  ("Sofia Castro", "sofia@python.com"))
+    id_sofia = cursor.lastrowid
+    print(f"   ✅ Cliente Sofia insertado con ID: {id_sofia}")
+    
+    conexion.commit()
+    
+    # Mostrar datos insertados
+    print("\n📊 CLIENTES REGISTRADOS:")
+    cursor.execute("SELECT id, nombre, email, ciudad FROM clientes")
+    for cliente in cursor.fetchall():
+        print(f"   👤 ID: {cliente[0]}, {cliente[1]} - {cliente[2]} ({cliente[3]})")
+    
+    conexion.close()
+    return "crud_demo.db"
+
+# Ejecutar demostración
+archivo_db = demo_insertar_datos()
+
+# Limpieza
+if os.path.exists(archivo_db):
+    os.remove(archivo_db)
+    print("🧹 Archivo de demostración eliminado")
+
+🔍 CONSULTAR DATOS - ¡LEER REGISTROS!
+
+
+import sqlite3
+
+print("🔍 ¡CONSULTANDO DATOS EN SQLite! 🔍")
+
+def demo_consultas():
+    """Demuestra diferentes tipos de consultas SQL"""
+    
+    conexion = sqlite3.connect("consultas_demo.db")
+    cursor = conexion.cursor()
+    
+    # Crear datos de ejemplo
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS empleados (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        departamento TEXT,
+        salario REAL,
+        fecha_contratacion DATE,
+        activo BOOLEAN DEFAULT 1
+    )
+    """)
+    
+    # Insertar datos de ejemplo
+    empleados = [
+        ("Ana García", "Ventas", 35000, "2022-01-15", 1),
+        ("Carlos López", "TI", 45000, "2021-03-20", 1),
+        ("María Rodríguez", "Ventas", 32000, "2023-06-10", 1),
+        ("Pedro Martínez", "Marketing", 38000, "2020-11-05", 0),
+        ("Laura Fernández", "TI", 52000, "2019-08-12", 1),
+        ("Sofia Castro", "RRHH", 41000, "2022-09-30", 1)
+    ]
+    
+    cursor.executemany("""
+    INSERT INTO empleados (nombre, departamento, salario, fecha_contratacion, activo)
+    VALUES (?, ?, ?, ?, ?)
+    """, empleados)
+    conexion.commit()
+    
+    print("🎯 TIPOS DE CONSULTAS:")
+    
+    # 1. CONSULTA BÁSICA - TODOS LOS REGISTROS
+    print("\n1. 📋 Todos los empleados:")
+    cursor.execute("SELECT * FROM empleados")
+    empleados = cursor.fetchall()
+    for emp in empleados:
+        print(f"   👤 {emp[1]} - {emp[2]} - ${emp[3]:,}")
+    
+    # 2. CONSULTA CON FILTROS
+    print("\n2. 🎯 Empleados de TI:")
+    cursor.execute("SELECT nombre, salario FROM empleados WHERE departamento = ?", ("TI",))
+    for emp in cursor.fetchall():
+        print(f"   💻 {emp[0]} - ${emp[1]:,}")
+    
+    # 3. CONSULTA CON ORDENAMIENTO
+    print("\n3. 📊 Empleados ordenados por salario (descendente):")
+    cursor.execute("SELECT nombre, departamento, salario FROM empleados WHERE activo = 1 ORDER BY salario DESC")
+    for emp in cursor.fetchall():
+        print(f"   💰 {emp[0]} - {emp[1]} - ${emp[2]:,}")
+    
+    # 4. CONSULTA CON AGRUPAMIENTO
+    print("\n4. 📈 Salario promedio por departamento:")
+    cursor.execute("""
+    SELECT departamento, COUNT(*) as cantidad, AVG(salario) as salario_promedio 
+    FROM empleados 
+    WHERE activo = 1 
+    GROUP BY departamento
+    """)
+    for depto in cursor.fetchall():
+        print(f"   🏢 {depto[0]}: {depto[1]} empleados - ${depto[2]:,.2f} promedio")
+    
+    # 5. CONSULTA CON LÍMITE
+    print("\n5. 🥇 Top 3 empleados mejor pagados:")
+    cursor.execute("""
+    SELECT nombre, departamento, salario 
+    FROM empleados 
+    WHERE activo = 1 
+    ORDER BY salario DESC 
+    LIMIT 3
+    """)
+    for emp in cursor.fetchall():
+        print(f"   👑 {emp[0]} - {emp[1]} - ${emp[2]:,}")
+    
+    # 6. CONSULTA CON BÚSQUEDA DE TEXTO
+    print("\n6. 🔍 Empleados que contienen 'a' en el nombre:")
+    cursor.execute("SELECT nombre FROM empleados WHERE nombre LIKE '%a%'")
+    for emp in cursor.fetchall():
+        print(f"   🔎 {emp[0]}")
+    
+    conexion.close()
+    return "consultas_demo.db"
+
+# Ejecutar demostración
+archivo_db = demo_consultas()
+
+# Limpieza
+if os.path.exists(archivo_db):
+    os.remove(archivo_db)
+    print("🧹 Archivo de demostración eliminado")
+
+✏️ ACTUALIZAR DATOS - ¡MODIFICAR REGISTROS!
+
+
+import sqlite3
+
+print("✏️ ¡ACTUALIZANDO DATOS EN SQLite! ✏️")
+
+def demo_actualizaciones():
+    """Demuestra diferentes formas de actualizar datos"""
+    
+    conexion = sqlite3.connect("actualizaciones_demo.db")
+    cursor = conexion.cursor()
+    
+    # Crear tabla de productos
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS productos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        precio REAL NOT NULL,
+        stock INTEGER DEFAULT 0,
+        categoria TEXT,
+        fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    # Insertar productos de ejemplo
+    productos = [
+        ("Laptop Gaming", 1299.99, 5, "Electrónicos"),
+        ("Mouse Inalámbrico", 25.50, 20, "Electrónicos"),
+        ("Teclado Mecánico", 89.99, 8, "Electrónicos"),
+        ("Silla Oficina", 199.99, 3, "Muebles"),
+        ("Monitor 24\"", 299.99, 0, "Electrónicos")
+    ]
+    
+    cursor.executemany("INSERT INTO productos (nombre, precio, stock, categoria) VALUES (?, ?, ?, ?)", productos)
+    conexion.commit()
+    
+    print("🔄 TIPOS DE ACTUALIZACIONES:")
+    
+    # Mostrar estado inicial
+    print("\n📦 ESTADO INICIAL DE PRODUCTOS:")
+    cursor.execute("SELECT nombre, precio, stock FROM productos")
+    for prod in cursor.fetchall():
+        print(f"   📍 {prod[0]} - ${prod[1]} - Stock: {prod[2]}")
+    
+    # 1. ACTUALIZACIÓN SIMPLE
+    print("\n1. 🔹 Actualizar precio del mouse:")
+    cursor.execute("UPDATE productos SET precio = ? WHERE nombre = ?", (29.99, "Mouse Inalámbrico"))
+    print("   ✅ Precio del mouse actualizado a $29.99")
+    
+    # 2. ACTUALIZACIÓN MÚLTIPLE
+    print("\n2. 🔹 Aplicar descuento del 10% a electrónicos:")
+    cursor.execute("UPDATE productos SET precio = precio * 0.9 WHERE categoria = ?", ("Electrónicos",))
+    print("   ✅ Descuento aplicado a productos electrónicos")
+    
+    # 3. ACTUALIZACIÓN CON CÁLCULOS
+    print("\n3. 🔹 Reponer stock de productos agotados:")
+    cursor.execute("UPDATE productos SET stock = stock + 10 WHERE stock = 0")
+    print("   ✅ Stock repuesto para productos agotados")
+    
+    # 4. ACTUALIZACIÓN CONDICIONAL COMPLEJA
+    print("\n4. 🔹 Incrementar precio de productos con poco stock:")
+    cursor.execute("""
+    UPDATE productos 
+    SET precio = precio * 1.05, 
+        fecha_actualizacion = CURRENT_TIMESTAMP 
+    WHERE stock < 5 AND stock > 0
+    """)
+    print("   ✅ Precio incrementado para productos con stock bajo")
+    
+    conexion.commit()
+    
+    # Mostrar estado final
+    print("\n📦 ESTADO FINAL DE PRODUCTOS:")
+    cursor.execute("SELECT nombre, precio, stock FROM productos ORDER BY nombre")
+    for prod in cursor.fetchall():
+        print(f"   ✅ {prod[0]} - ${prod[1]:.2f} - Stock: {prod[2]}")
+    
+    conexion.close()
+    return "actualizaciones_demo.db"
+
+# Ejecutar demostración
+archivo_db = demo_actualizaciones()
+
+# Limpieza
+if os.path.exists(archivo_db):
+    os.remove(archivo_db)
+    print("🧹 Archivo de demostración eliminado")
+
+🗑️ ELIMINAR DATOS - ¡BORRAR REGISTROS!
+
+
+import sqlite3
+
+print("🗑️ ¡ELIMINANDO DATOS EN SQLite! 🗑️")
+
+def demo_eliminaciones():
+    """Demuestra diferentes formas de eliminar datos"""
+    
+    conexion = sqlite3.connect("eliminaciones_demo.db")
+    cursor = conexion.cursor()
+    
+    # Crear tabla de usuarios
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+        ultimo_login DATETIME,
+        activo BOOLEAN DEFAULT 1
+    )
+    """)
+    
+    # Insertar usuarios de ejemplo
+    usuarios = [
+        ("ana_dev", "ana@python.com", "2023-01-15", "2024-01-10"),
+        ("carlos_data", "carlos@python.com", "2023-03-20", "2023-12-05"),
+        ("maria_ai", "maria@python.com", "2023-06-10", "2024-01-12"),
+        ("pedro_cloud", "pedro@python.com", "2022-11-05", "2023-08-15"),
+        ("laura_web", "laura@python.com", "2023-09-30", "2024-01-14"),
+        ("sofia_mobile", "sofia@python.com", "2022-08-12", "2023-05-20")
+    ]
+    
+    cursor.executemany("INSERT INTO usuarios (username, email, fecha_registro, ultimo_login) VALUES (?, ?, ?, ?)", usuarios)
+    conexion.commit()
+    
+    print("⚠️ TIPOS DE ELIMINACIÓN:")
+    
+    # Mostrar estado inicial
+    print("\n👥 USUARIOS REGISTRADOS:")
+    cursor.execute("SELECT username, email, ultimo_login FROM usuarios")
+    for usuario in cursor.fetchall():
+        print(f"   👤 {usuario[0]} - {usuario[1]} - Último login: {usuario[2]}")
+    
+    # 1. ELIMINACIÓN POR CONDICIÓN
+    print("\n1. 🔹 Eliminar usuarios inactivos (último login antes de 2024):")
+    cursor.execute("DELETE FROM usuarios WHERE ultimo_login < '2024-01-01'")
+    eliminados = cursor.rowcount
+    print(f"   ✅ {eliminados} usuarios eliminados por inactividad")
+    
+    # 2. ELIMINACIÓN POR ID ESPECÍFICO
+    print("\n2. 🔹 Eliminar usuario específico:")
+    # Primero obtener un ID para eliminar
+    cursor.execute("SELECT id, username FROM usuarios LIMIT 1")
+    usuario_a_eliminar = cursor.fetchone()
+    
+    if usuario_a_eliminar:
+        cursor.execute("DELETE FROM usuarios WHERE id = ?", (usuario_a_eliminar[0],))
+        print(f"   ✅ Usuario '{usuario_a_eliminar[1]}' eliminado")
+    
+    # 3. ELIMINACIÓN CON TRANSACCIÓN Y VERIFICACIÓN
+    print("\n3. 🔹 Eliminación segura con transacción:")
+    try:
+        # Iniciar transacción explícita
+        conexion.execute("BEGIN TRANSACTION")
+        
+        # Verificar antes de eliminar
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE username = 'maria_ai'")
+        existe = cursor.fetchone()[0]
+        
+        if existe > 0:
+            cursor.execute("DELETE FROM usuarios WHERE username = 'maria_ai'")
+            print("   ✅ Usuario 'maria_ai' eliminado en transacción")
+        else:
+            print("   ℹ️ Usuario 'maria_ai' no existe")
+        
+        # Confirmar transacción
+        conexion.commit()
+        
+    except sqlite3.Error as e:
+        # Revertir en caso de error
+        conexion.rollback()
+        print(f"   ❌ Error en transacción: {e}")
+    
+    # 4. ELIMINACIÓN DE TODOS LOS REGISTROS (CUIDADO!)
+    print("\n4. 🔹 Eliminar todos los registros (TRUNCATE):")
+    confirmacion = input("   ¿Estás seguro de eliminar TODOS los usuarios? (s/n): ")
+    
+    if confirmacion.lower() == 's':
+        cursor.execute("DELETE FROM usuarios")
+        print("   ✅ Todos los usuarios eliminados")
+        conexion.commit()
+    else:
+        print("   ❌ Eliminación cancelada")
+    
+    # Mostrar estado final
+    print("\n👥 USUARIOS RESTANTES:")
+    cursor.execute("SELECT username, email FROM usuarios")
+    usuarios_restantes = cursor.fetchall()
+    
+    if usuarios_restantes:
+        for usuario in usuarios_restantes:
+            print(f"   ✅ {usuario[0]} - {usuario[1]}")
+    else:
+        print("   📭 No hay usuarios en la base de datos")
+    
+    conexion.close()
+    return "eliminaciones_demo.db"
+
+# Ejecutar demostración
+archivo_db = demo_eliminaciones()
+
+# Limpieza
+if os.path.exists(archivo_db):
+    os.remove(archivo_db)
+    print("🧹 Archivo de demostración eliminado")
+
+⚡ ¡TRANSACCIONES - SEGURIDAD Y CONSISTENCIA!
+🔒 TRANSACCIONES ACID - ¡DATOS SEGUROS!
+
+
+import sqlite3
+
+print("🔒 ¡TRANSACCIONES EN SQLite! 🔒")
+
+def demo_transacciones():
+    """Demuestra el uso de transacciones para operaciones seguras"""
+    
+    conexion = sqlite3.connect("transacciones_demo.db")
+    cursor = conexion.cursor()
+    
+    # Crear tablas para sistema bancario
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cuentas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        numero_cuenta TEXT UNIQUE NOT NULL,
+        titular TEXT NOT NULL,
+        saldo REAL DEFAULT 0.0,
+        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transacciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cuenta_origen TEXT,
+        cuenta_destino TEXT,
+        monto REAL NOT NULL,
+        tipo TEXT NOT NULL,
+        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+        descripcion TEXT
+    )
+    """)
+    
+    # Crear cuentas de ejemplo
+    cuentas = [
+        ("CUENTA-001", "Ana García", 1000.0),
+        ("CUENTA-002", "Carlos López", 500.0)
+    ]
+    
+    cursor.executemany("INSERT INTO cuentas (numero_cuenta, titular, saldo) VALUES (?, ?, ?)", cuentas)
+    conexion.commit()
+    
+    print("🏦 SISTEMA BANCARIO CON TRANSACCIONES")
+    
+    def transferir_dinero(cuenta_origen, cuenta_destino, monto):
+        """Realiza una transferencia segura usando transacciones"""
+        try:
+            # Iniciar transacción
+            conexion.execute("BEGIN TRANSACTION")
+            
+            print(f"\n🔄 Iniciando transferencia: ${monto} de {cuenta_origen} a {cuenta_destino}")
+            
+            # 1. Verificar fondos en cuenta origen
+            cursor.execute("SELECT saldo FROM cuentas WHERE numero_cuenta = ?", (cuenta_origen,))
+            saldo_origen = cursor.fetchone()[0]
+            
+            if saldo_origen < monto:
+                raise ValueError("❌ Fondos insuficientes")
+            
+            # 2. Restar de cuenta origen
+            cursor.execute("UPDATE cuentas SET saldo = saldo - ? WHERE numero_cuenta = ?", (monto, cuenta_origen))
+            print(f"   ✅ ${monto} debitados de {cuenta_origen}")
+            
+            # 3. Sumar a cuenta destino
+            cursor.execute("UPDATE cuentas SET saldo = saldo + ? WHERE numero_cuenta = ?", (monto, cuenta_destino))
+            print(f"   ✅ ${monto} acreditados a {cuenta_destino}")
+            
+            # 4. Registrar transacción
+            cursor.execute("""
+            INSERT INTO transacciones (cuenta_origen, cuenta_destino, monto, tipo, descripcion)
+            VALUES (?, ?, ?, ?, ?)
+            """, (cuenta_origen, cuenta_destino, monto, "transferencia", f"Transferencia a {cuenta_destino}"))
+            
+            # Confirmar transacción
+            conexion.commit()
+            print("   🎉 Transferencia completada exitosamente!")
+            return True
+            
+        except Exception as e:
+            # Revertir en caso de error
+            conexion.rollback()
+            print(f"   💥 Error: {e}")
+            print("   🔄 Transacción revertida - No se realizaron cambios")
+            return False
+    
+    def mostrar_saldos():
+        """Muestra los saldos actuales"""
+        print("\n💰 SALDOS ACTUALES:")
+        cursor.execute("SELECT numero_cuenta, titular, saldo FROM cuentas")
+        for cuenta in cursor.fetchall():
+            print(f"   👤 {cuenta[1]} ({cuenta[0]}): ${cuenta[2]:.2f}")
+    
+    # Mostrar saldos iniciales
+    print("\n📊 ESTADO INICIAL:")
+    mostrar_saldos()
+    
+    # Realizar transferencias
+    print("\n" + "="*50)
+    
+    # Transferencia exitosa
+    transferir_dinero("CUENTA-001", "CUENTA-002", 200.0)
+    
+    # Mostrar saldos después de transferencia exitosa
+    mostrar_saldos()
+    
+    print("\n" + "="*50)
+    
+    # Transferencia fallida (fondos insuficientes)
+    transferir_dinero("CUENTA-002", "CUENTA-001", 1000.0)
+    
+    # Mostrar saldos finales (no deberían cambiar por la transacción fallida)
+    print("\n📊 ESTADO FINAL:")
+    mostrar_saldos()
+    
+    # Mostrar historial de transacciones
+    print("\n📋 HISTORIAL DE TRANSACCIONES:")
+    cursor.execute("SELECT cuenta_origen, cuenta_destino, monto, fecha FROM transacciones")
+    for trans in cursor.fetchall():
+        print(f"   💸 {trans[0]} → {trans[1]}: ${trans[2]} - {trans[3]}")
+    
+    conexion.close()
+    return "transacciones_demo.db"
+
+# Ejecutar demostración
+archivo_db = demo_transacciones()
+
+# Limpieza
+if os.path.exists(archivo_db):
+    os.remove(archivo_db)
+    print("🧹 Archivo de demostración eliminado")
+
+🏆 ¡SISTEMA COMPLETO DEL MUNDO REAL!
+📚 SISTEMA DE BIBLIOTECA CON SQLite
+
+
+import sqlite3
+import os
+from datetime import datetime, timedelta
+
+class SistemaBiblioteca:
+    """Sistema completo de gestión de biblioteca usando SQLite"""
+    
+    def __init__(self, db_nombre="biblioteca.db"):
+        self.db_nombre = db_nombre
+        self.conexion = None
+        self.conectar()
+        self.crear_tablas()
+    
+    def conectar(self):
+        """Establece conexión con la base de datos"""
+        try:
+            self.conexion = sqlite3.connect(self.db_nombre)
+            # Configurar para devolver diccionarios en lugar de tuplas
+            self.conexion.row_factory = sqlite3.Row
+            print(f"✅ Conectado a {self.db_nombre}")
+        except sqlite3.Error as e:
+            print(f"❌ Error al conectar: {e}")
+    
+    def crear_tablas(self):
+        """Crea las tablas necesarias para el sistema"""
+        tablas_sql = [
+            # Tabla de libros
+            """
+            CREATE TABLE IF NOT EXISTS libros (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT NOT NULL,
+                autor TEXT NOT NULL,
+                isbn TEXT UNIQUE,
+                genero TEXT,
+                año_publicacion INTEGER,
+                ejemplares_totales INTEGER DEFAULT 1,
+                ejemplares_disponibles INTEGER DEFAULT 1,
+                fecha_agregado DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            # Tabla de usuarios
+            """
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                telefono TEXT,
+                fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+                activo BOOLEAN DEFAULT 1
+            )
+            """,
+            # Tabla de préstamos
+            """
+            CREATE TABLE IF NOT EXISTS prestamos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                libro_id INTEGER NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                fecha_prestamo DATETIME DEFAULT CURRENT_TIMESTAMP,
+                fecha_devolucion_estimada DATETIME,
+                fecha_devolucion_real DATETIME,
+                estado TEXT DEFAULT 'prestado',
+                FOREIGN KEY (libro_id) REFERENCES libros (id),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+            )
+            """
+        ]
+        
+        try:
+            cursor = self.conexion.cursor()
+            for tabla_sql in tablas_sql:
+                cursor.execute(tabla_sql)
+            self.conexion.commit()
+            print("✅ Tablas creadas/verificadas correctamente")
+        except sqlite3.Error as e:
+            print(f"❌ Error al crear tablas: {e}")
+    
+    def agregar_libro(self, titulo, autor, isbn=None, genero=None, año=None, ejemplares=1):
+        """Agrega un nuevo libro a la biblioteca"""
+        try:
+            cursor = self.conexion.cursor()
+            cursor.execute("""
+            INSERT INTO libros (titulo, autor, isbn, genero, año_publicacion, ejemplares_totales, ejemplares_disponibles)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (titulo, autor, isbn, genero, año, ejemplares, ejemplares))
+            
+            self.conexion.commit()
+            print(f"✅ Libro '{titulo}' agregado exitosamente")
+            return cursor.lastrowid
+        except sqlite3.IntegrityError:
+            print("❌ Error: ISBN ya existe")
+            return None
+        except sqlite3.Error as e:
+            print(f"❌ Error al agregar libro: {e}")
+            return None
+    
+    def registrar_usuario(self, nombre, email, telefono=None):
+        """Registra un nuevo usuario en el sistema"""
+        try:
+            cursor = self.conexion.cursor()
+            cursor.execute("""
+            INSERT INTO usuarios (nombre, email, telefono)
+            VALUES (?, ?, ?)
+            """, (nombre, email, telefono))
+            
+            self.conexion.commit()
+            print(f"✅ Usuario '{nombre}' registrado exitosamente")
+            return cursor.lastrowid
+        except sqlite3.IntegrityError:
+            print("❌ Error: Email ya registrado")
+            return None
+        except sqlite3.Error as e:
+            print(f"❌ Error al registrar usuario: {e}")
+            return None
+    
+    def prestar_libro(self, libro_id, usuario_id, dias_prestamo=14):
+        """Realiza el préstamo de un libro"""
+        try:
+            cursor = self.conexion.cursor()
+            
+            # Verificar disponibilidad
+            cursor.execute("SELECT ejemplares_disponibles FROM libros WHERE id = ?", (libro_id,))
+            libro = cursor.fetchone()
+            
+            if not libro or libro['ejemplares_disponibles'] <= 0:
+                print("❌ Libro no disponible para préstamo")
+                return False
+            
+            # Calcular fecha de devolución estimada
+            fecha_devolucion = datetime.now() + timedelta(days=dias_prestamo)
+            
+            # Registrar préstamo
+            cursor.execute("""
+            INSERT INTO prestamos (libro_id, usuario_id, fecha_devolucion_estimada)
+            VALUES (?, ?, ?)
+            """, (libro_id, usuario_id, fecha_devolucion))
+            
+            # Actualizar disponibilidad
+            cursor.execute("""
+            UPDATE libros 
+            SET ejemplares_disponibles = ejemplares_disponibles - 1 
+            WHERE id = ?
+            """, (libro_id,))
+            
+            self.conexion.commit()
+            print("✅ Préstamo registrado exitosamente")
+            return True
+            
+        except sqlite3.Error as e:
+            self.conexion.rollback()
+            print(f"❌ Error en préstamo: {e}")
+            return False
+    
+    def devolver_libro(self, prestamo_id):
+        """Registra la devolución de un libro"""
+        try:
+            cursor = self.conexion.cursor()
+            
+            # Obtener información del préstamo
+            cursor.execute("SELECT libro_id FROM prestamos WHERE id = ? AND estado = 'prestado'", (prestamo_id,))
+            prestamo = cursor.fetchone()
+            
+            if not prestamo:
+                print("❌ Préstamo no encontrado o ya devuelto")
+                return False
+            
+            # Actualizar préstamo
+            cursor.execute("""
+            UPDATE prestamos 
+            SET estado = 'devuelto', fecha_devolucion_real = CURRENT_TIMESTAMP 
+            WHERE id = ?
+            """, (prestamo_id,))
+            
+            # Actualizar disponibilidad del libro
+            cursor.execute("""
+            UPDATE libros 
+            SET ejemplares_disponibles = ejemplares_disponibles + 1 
+            WHERE id = ?
+            """, (prestamo['libro_id'],))
+            
+            self.conexion.commit()
+            print("✅ Devolución registrada exitosamente")
+            return True
+            
+        except sqlite3.Error as e:
+            self.conexion.rollback()
+            print(f"❌ Error en devolución: {e}")
+            return False
+    
+    def buscar_libros(self, criterio, valor):
+        """Busca libros por diferentes criterios"""
+        try:
+            cursor = self.conexion.cursor()
+            
+            if criterio == "titulo":
+                cursor.execute("SELECT * FROM libros WHERE titulo LIKE ?", (f'%{valor}%',))
+            elif criterio == "autor":
+                cursor.execute("SELECT * FROM libros WHERE autor LIKE ?", (f'%{valor}%',))
+            elif criterio == "genero":
+                cursor.execute("SELECT * FROM libros WHERE genero = ?", (valor,))
+            elif criterio == "disponibles":
+                cursor.execute("SELECT * FROM libros WHERE ejemplares_disponibles > 0")
+            else:
+                print("❌ Criterio de búsqueda no válido")
+                return []
+            
+            return cursor.fetchall()
+            
+        except sqlite3.Error as e:
+            print(f"❌ Error en búsqueda: {e}")
+            return []
+    
+    def generar_reporte(self):
+        """Genera un reporte completo del estado de la biblioteca"""
+        try:
+            cursor = self.conexion.cursor()
+            
+            print("\n📊 REPORTE DE BIBLIOTECA")
+            print("=" * 50)
+            
+            # Estadísticas generales
+            cursor.execute("SELECT COUNT(*) as total FROM libros")
+            total_libros = cursor.fetchone()['total']
+            
+            cursor.execute("SELECT COUNT(*) as total FROM usuarios WHERE activo = 1")
+            total_usuarios = cursor.fetchone()['total']
+            
+            cursor.execute("SELECT COUNT(*) as total FROM prestamos WHERE estado = 'prestado'")
+            prestamos_activos = cursor.fetchone()['total']
+            
+            print(f"📚 Total libros: {total_libros}")
+            print(f"👥 Usuarios activos: {total_usuarios}")
+            print(f"📖 Préstamos activos: {prestamos_activos}")
+            
+            # Libros más prestados
+            print("\n🔥 LIBROS MÁS POPULARES:")
+            cursor.execute("""
+            SELECT l.titulo, l.autor, COUNT(p.id) as veces_prestado
+            FROM libros l
+            LEFT JOIN prestamos p ON l.id = p.libro_id
+            GROUP BY l.id
+            ORDER BY veces_prestado DESC
+            LIMIT 5
+            """)
+            
+            for libro in cursor.fetchall():
+                print(f"   📖 {libro['titulo']} - {libro['autor']} ({libro['veces_prestado']} préstamos)")
+            
+            # Préstamos vencidos
+            print("\n⚠️ PRÉSTAMOS VENCIDOS:")
+            cursor.execute("""
+            SELECT p.id, l.titulo, u.nombre, p.fecha_devolucion_estimada
+            FROM prestamos p
+            JOIN libros l ON p.libro_id = l.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            WHERE p.estado = 'prestado' AND p.fecha_devolucion_estimada < DATE('now')
+            """)
+            
+            prestamos_vencidos = cursor.fetchall()
+            if prestamos_vencidos:
+                for prestamo in prestamos_vencidos:
+                    print(f"   ❌ {prestamo['titulo']} - {prestamo['nombre']} (Vencido: {prestamo['fecha_devolucion_estimada']})")
+            else:
+                print("   ✅ No hay préstamos vencidos")
+                
+        except sqlite3.Error as e:
+            print(f"❌ Error al generar reporte: {e}")
+    
+    def cerrar(self):
+        """Cierra la conexión con la base de datos"""
+        if self.conexion:
+            self.conexion.close()
+            print("🔒 Conexión cerrada")
+
+# ¡DEMOSTRACIÓN DEL SISTEMA!
+def demostrar_sistema_biblioteca():
+    """Demuestra el funcionamiento completo del sistema de biblioteca"""
+    
+    print("🏛️ SISTEMA DE BIBLIOTECA CON SQLite")
+    print("=" * 60)
+    
+    # Crear sistema
+    biblioteca = SistemaBiblioteca("demo_biblioteca.db")
+    
+    # Agregar libros
+    print("\n📚 AGREGANDO LIBROS:")
+    biblioteca.agregar_libro("Cien años de soledad", "Gabriel García Márquez", "978-8437604947", "Realismo mágico", 1967, 3)
+    biblioteca.agregar_libro("1984", "George Orwell", "978-0451524935", "Ciencia ficción", 1949, 2)
+    biblioteca.agregar_libro("El Quijote", "Miguel de Cervantes", "978-8424117896", "Clásico", 1605, 1)
+    biblioteca.agregar_libro("Python Crash Course", "Eric Matthes", "978-1593279288", "Programación", 2019, 5)
+    
+    # Registrar usuarios
+    print("\n👥 REGISTRANDO USUARIOS:")
+    biblioteca.registrar_usuario("Ana García", "ana@email.com", "+34 600 111 222")
+    biblioteca.registrar_usuario("Carlos López", "carlos@email.com", "+34 600 333 444")
+    
+    # Buscar libros
+    print("\n🔍 BUSCANDO LIBROS DE PROGRAMACIÓN:")
+    libros_programacion = biblioteca.buscar_libros("genero", "Programación")
+    for libro in libros_programacion:
+        print(f"   💻 {libro['titulo']} - {libro['autor']} ({libro['ejemplares_disponibles']} disponibles)")
+    
+    # Realizar préstamos
+    print("\n📖 REALIZANDO PRÉSTAMOS:")
+    biblioteca.prestar_libro(1, 1)  # Ana pide Cien años de soledad
+    biblioteca.prestar_libro(4, 2)  # Carlos pide Python Crash Course
+    
+    # Generar reporte
+    biblioteca.generar_reporte()
+    
+    # Devolver un libro
+    print("\n📚 DEVOLVIENDO LIBRO:")
+    biblioteca.devolver_libro(1)
+    
+    # Reporte final
+    print("\n📊 ESTADO FINAL:")
+    biblioteca.generar_reporte()
+    
+    # Cerrar sistema
+    biblioteca.cerrar()
+    
+    return "demo_biblioteca.db"
+
+# Ejecutar demostración
+archivo_db = demostrar_sistema_biblioteca()
+
+# Limpieza
+if os.path.exists(archivo_db):
+    os.remove(archivo_db)
+    print("🧹 Archivo de demostración eliminado")
+
+🎊 ¡RESUMEN FINAL DE SQLite!
+
+¿QUÉ OBTIENES CON SQLite EN PYTHON?
+
+    ✅ Base de datos embebida - Sin servidor, solo archivo
+
+    ✅ Transacciones ACID - Datos seguros y consistentes
+
+    ✅ SQL completo - Todas las operaciones estándar
+
+    ✅ Alto rendimiento - Optimizado para aplicaciones locales
+
+    ✅ Multiplataforma - Mismo archivo en cualquier sistema
+
+¡OPERACIONES PRINCIPALES!
+
+    🔌 sqlite3.connect() - Conectar/crear base de datos
+
+    📊 cursor.execute() - Ejecutar consultas SQL
+
+    💾 connection.commit() - Guardar cambios
+
+    🔄 connection.rollback() - Revertir cambios
+
+    📥 cursor.fetchall() - Obtener resultados
+
+¡VENTAJAS CLAVE!
+
+    🚀 Cero configuración - Listo para usar
+
+    💾 Archivo único - Fácil de respaldar
+
+    🔒 Transacciones - Operaciones seguras
+
+    🌐 Portable - Funciona en cualquier lugar
+
+    ⚡ Eficiente - Perfecto para aplicaciones locales
+
+¡NO ESPERES MÁS! ⏰
+¡DOMINA SQLite Y CREA APLICACIONES CON DATOS PROFESIONALES!
+
+
+import sqlite3
+
+def demostrar_poder_final():
+    """¡Función final que demuestra todo tu poder con SQLite!"""
+    
+    # Crear base de datos en memoria (solo para demostración)
+    conexion = sqlite3.connect(":memory:")
+    conexion.row_factory = sqlite3.Row
+    
+    # Crear tabla de logros
+    conexion.execute("""
+    CREATE TABLE logros_sqlite (
+        id INTEGER PRIMARY KEY,
+        habilidad TEXT,
+        nivel TEXT,
+        descripcion TEXT
+    )
+    """)
+    
+    # Insertar logros
+    logros = [
+        ("Conexión y creación", "Avanzado", "Crear y gestionar bases de datos SQLite"),
+        ("Operaciones CRUD", "Experto", "Insertar, consultar, actualizar y eliminar datos"),
+        ("Transacciones", "Profesional", "Manejar transacciones ACID complejas"),
+        ("Consultas avanzadas", "Maestro", "JOIN, GROUP BY, subconsultas"),
+        ("Sistemas completos", "Arquitecto", "Diseñar sistemas empresariales con SQLite")
+    ]
+    
+    conexion.executemany("INSERT INTO logros_sqlite (habilidad, nivel, descripcion) VALUES (?, ?, ?)", logros)
+    conexion.commit()
+    
+    # Mostrar logros
+    print("🎉 ¡FELICIDADES! Ahora dominas:")
+    print("🐍 SQLite EN PYTHON - BASES DE DATOS PROFESIONALES")
+    print("\n🏆 TUS LOGROS:")
+    
+    cursor = conexion.execute("SELECT * FROM logros_sqlite ORDER BY id")
+    for logro in cursor:
+        print(f"   ✅ {logro['habilidad']} - Nivel {logro['nivel']}")
+        print(f"      📝 {logro['descripcion']}")
+    
+    conexion.close()
+    
+    return "🚀 ¡Estás listo para crear aplicaciones con bases de datos reales!"
+
+# ¡EJECUTA TU PODER!
+mensaje_final = demostrar_poder_final()
+print(f"\n{mensaje_final}")
+
+¡SQLite ES LA BASE DE DATOS EMBEBIDA MÁS PODEROSA, Y AHORA LA CONTROLAS CON PYTHON! 💪🐍
