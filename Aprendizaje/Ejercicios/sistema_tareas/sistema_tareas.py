@@ -9,7 +9,11 @@ class SistemaTareas:
         self.opciones_validas_menu = ["1", "2", "3","4"]
         self.guardar = Guardador()
 
-    def categoria_tarea(self):
+    def categoria_tarea(self) -> str:
+        """
+        Solicita asignar la categoria de la tarea
+        
+        """
         print("SELECCIONE LA CATEGORIA DE LA TAREA")
         print("1. HOGAR")
         print("2. ESCUELA")
@@ -28,7 +32,11 @@ class SistemaTareas:
         else:
             print("Ingrese una opccion valida!!")
 
-    def importancia_tarea(self):
+    def importancia_tarea(self) -> str:
+        """
+        Solicita asignar la importancia de la tarea
+        
+        """
         print("SELECCIONE NIVEL DE IMPORTANCIA")
         print("1. BAJO")
         print("2. MEDIO")
@@ -47,11 +55,19 @@ class SistemaTareas:
         else:
             print("Ingrese una opccion valida!!")
 
-    def texto_tarea(self):
+    def texto_tarea(self) -> str:
+        """
+        Solicita el texto de la tarea
+        
+        """
         t_tarea = input("Ingrese la tarea o pendiente : ")
         return t_tarea
 
-    def recordatorio_tarea(self):
+    def recordatorio_tarea(self) -> bool:
+        """
+        Pregunta al usuario si la tarea tendra recordatorio
+        
+        """
         while True:
             recordatorio = input("¿Desea crear un recordatorio para esta tarea?     s/n  ").lower()
             if recordatorio.isalpha() and recordatorio in ("s", "n"):
@@ -59,7 +75,18 @@ class SistemaTareas:
             else:
                 print("Ingrese una opccion valida!!! (s / n)")
 
-    def fecha_recordatorio(self):
+    def fecha_recordatorio(self) -> int:
+        """
+        Solicita al usuario ingresar la fecha del recordatorio
+        
+        Returns:
+            dia     : int       Dia del mes del recordatorio
+            mes     : int       Mes del año del recordatorio
+            año     : int       Año del recordatorio
+
+        Raises:
+            ValueError: Si ingresa caracteres alfabeticos o numericos fuera de rango
+        """
         
         print("Ingrese la fecha de la alarma en formato 00/00/0000)")
         
@@ -96,7 +123,17 @@ class SistemaTareas:
                 print(f"Ingrese un numero entre (01 - {dia_ultimo})")
         return (año, mes, dia)
 
-    def alarma_tarea(self):
+    def alarma_tarea(self) -> int:
+        """
+        Solicita al usuario la hora de la alarma del recordatorio
+
+        Returns:
+            hrs     : int       Hora de la alarma 
+            min     : int       Minutos de la alarma
+            
+        Raises:
+            ValueError: Si ingresa caracteres alfabeticos o numericos fuera de rango
+        """
         
         print("Ingrese la hora de la alarma con formato 24hrs (00:00)")
         
@@ -122,37 +159,61 @@ class SistemaTareas:
                 print("Ingrese un numero entre (00 - 59)")
         return (hrs, m)
         
-    def menu_lista_tareas(self, lista_tareas):
-        print("*"*10 + " LISTA DE TAREAS " + "*"*10)
-        if lista_tareas != None:
-            for tarea in lista_tareas:
-                print(f"Tarea No. {tarea.getIndex} \nAsunto : {tarea.getTarea} \nCategoria : {tarea.getCategoria} \nImportancia : {tarea.getImportancia} "
-                + f"\nRecordatorio {"SI" if tarea.getRecordatorio == True else "NO"} ")
-                if tarea.getRecordatorio == True:
-                    print(f"Fecha de Recordatorio : {tarea.getFechaAlarma} \nHora de Recordatorio : {tarea.getHoraAlarma}\n")
-                else:
-                    print()
-        print("Presione x para regresar " + 
-        ("O ingrese el numero de la tarea para modificar" if lista_tareas != [] else ""))
-        opccion = input("Seleccione : ").lower()
-        if opccion == "x":
-            self.menu_principal()
-        elif opccion.isdecimal() and int(opccion) <= len(lista_tareas):
-            self.menu_nueva_tarea(lista_tareas[int(opccion) - 1])
-        else:
-            print("Ingrese una opccion valida!")
+    def menu_lista_tareas(self, lista_tareas : list):
+        """
+        Menu para mostrar lista de tareas existentes y su contenido
+        
+        Args:
+            lista_tareas    : list      Lista de tareas(Objetos)
+            
+        """
+        while True:
+            print("*"*10 + " LISTA DE TAREAS " + "*"*10)
+            if lista_tareas != []:
+                for tarea in lista_tareas:
+                    print(f"Tarea No. {tarea.getIndex} \nAsunto : {tarea.getTarea} \nCategoria : {tarea.getCategoria} \nImportancia : {tarea.getImportancia} "
+                    + f"\nRecordatorio {"SI" if tarea.getRecordatorio == True else "NO"} ")
+                    if tarea.getRecordatorio == True:
+                        print(f"Fecha de Recordatorio : {tarea.getFechaAlarma} \nHora de Recordatorio : {tarea.getHoraAlarma}\n")
+                    else:
+                        print()
+            else:
+                print("     NADA POR AQUI Y NADA POR ALLA       ")
+            print("Presione x para regresar " + 
+            ("O ingrese el numero de la tarea para modificar" if lista_tareas != [] else ""))
+            opccion = input("Seleccione : ").lower()
+            if opccion == "x":
+                self.menu_principal()
+            elif opccion.isdecimal() and int(opccion) <= len(lista_tareas):
+                self.menu_nueva_tarea(lista_tareas[int(opccion) - 1])
+            else:
+                print("Ingrese una opccion valida!")
 
-    def eliminar_tarea(self, index_eliminar):
+    def eliminar_tarea(self, index_eliminar : int):
+        """
+        Elimina la tarea con el indice recibido
+        
+        Args:
+            index_eliminar  : int       Indice en la lista de la tarea
+            
+        """
         lista = self.guardar._cargar_historial()
-        print(lista)
         lista.pop(index_eliminar - 1)
-        print(lista)
         lista_reindexada = self.reindexado(lista)
-        print(lista)
         self.guardar._guardar_historial(lista_reindexada)
         print("TAREA ELIMINADA EXITOSAMENTE!!")
 
-    def reindexado(self, lista_hueco):
+    def reindexado(self, lista_hueco: list) -> list:
+        """
+        Re-Indexa las tareas para eliminar hueco por eliminacion
+        
+        Args:
+            lista_hueco     : list      Lista de tareas con hueco
+            
+        Returns:
+            Lista ordenada y sin hueco con indices reasignados
+            
+        """
         lista_hueco.sort(key=lambda x: x["index"])
         index = 1
         for tarea in lista_hueco:
@@ -162,6 +223,10 @@ class SistemaTareas:
 
 
     def menu_principal(self):
+        """
+        Menu Principal de Acciones
+        
+        """
         lista = self.conversor_total_dic_obj(self.guardar._cargar_historial())
         while True:
             print("*"*15 + " Sistema de Tareas " + "*"*15 + "\n")
@@ -181,6 +246,13 @@ class SistemaTareas:
                 print("Ingrese una opccion valida!")
                 
     def menu_nueva_tarea(self, nueva_tarea = None):
+        """
+        Menu de tareas, tanto para creaccion como para modificacion
+        
+        Args:
+            nueva_tarea     : Tarea     Objeto clase Tarea
+           
+        """
         borrable = False
         if nueva_tarea == None:
             nueva_tarea = Tarea()
@@ -224,7 +296,7 @@ class SistemaTareas:
                         nueva_tarea.setHora_Alarma(h_alarma, m_tarea)
                 elif opccion == "5":
                     nueva_tarea.fecha_creacion = nueva_tarea.fecha_creacion_tarea()
-                    tarea_dic = self._conversor_Dicc(nueva_tarea)
+                    tarea_dic = self._conversor_Dicc(nueva_tarea, True if borrable == True else False)
                     self.guardar_tarea(tarea_dic)
                     self.menu_principal()
                 elif opccion == "x" and borrable == True:
@@ -234,19 +306,40 @@ class SistemaTareas:
                     self.menu_principal()
             else:
                 print("Ingrese una opccion valida!!")
-    def guardar_tarea(self, dic_tarea):
+
+    def guardar_tarea(self, dic_tarea : dict):
+        """
+        Anexa la nueva tarea(dict) a la lista de tareas(dict) para guardar
+        
+        Args:
+            dic_tarea   : dict      Diccionario con los datos del Objeto Tarea convertidos
+            
+        """
         h_tareas = self.guardar._cargar_historial()
-        if h_tareas == None:
+        if h_tareas == None or []:
             h_tareas = []
-        print(h_tareas)
-        h_tareas.append(dic_tarea)
-        print(h_tareas)
+            h_tareas.append(dic_tarea)
+        else:
+            for t in h_tareas:
+                if t["index"] == dic_tarea["index"]:
+                    t["index"] = dic_tarea["index"]
+            else:
+                h_tareas.append(dic_tarea)
         self.guardar._guardar_historial(h_tareas)
 
-    def _conversor_Dicc(self, tarea_obj):
+    def _conversor_Dicc(self, tarea_obj : object , mod : bool) -> dict:
+        """
+        Convierte el Objeto Tarea a Diccionario para guardar en JSON
         
+        Args:
+            tarea_obj   : Tarea     Objeto clase Tarea a convertir
+            
+        Returns:
+            Diccionario con datos del Objeto
+
+        """
         tarea_dic = {
-            "index": int(self.guardar.index_tareas) + 1 ,
+            "index" : int(self.guardar.index_tareas) + 1 if mod == False else tarea_obj.getIndex,
             "categoria": tarea_obj.getCategoria ,
             "importancia": tarea_obj.importancia ,
             "tex_tarea": tarea_obj.tex_tarea ,
@@ -258,14 +351,24 @@ class SistemaTareas:
             "hora_alarma": tarea_obj.hora_alarma ,
             "min_alarma": tarea_obj.min_alarma
         }
-        self.guardar.index_tareas += 1
+        if mod == False:
+            self.guardar.index_tareas += 1
         return tarea_dic
 
-    def _conversor_Obj(self, diccionario : dict):
+    def _conversor_Obj(self, diccionario : dict) -> object:
+        """
+        Convierte el Diccionario a un Objeto clase Tarea
+        
+        Args:
+            diccionario : dict      Diccionario con datos del Objeto Tarea
+            
+        Returns:
+            Objeto clase Tarea con informacion cargada
+                        
+        """
         n_tarea = Tarea()
 
         n_tarea.setIndex(diccionario["index"])
-        print(n_tarea.getIndex)
         n_tarea.setCategoria(diccionario["categoria"])
         n_tarea.setImportancia(diccionario["importancia"])
         n_tarea.setTarea(diccionario["tex_tarea"])
@@ -277,18 +380,36 @@ class SistemaTareas:
 
         return n_tarea
 
-    def conversor_total_dic_obj(self, lista_dic : list):
+    def conversor_total_dic_obj(self, lista_dic : list) -> list:
+        """
+        Convierte todos los diccionarios de la lista en Objetos Tarea
+        
+        Args:
+            lista_dic   : list      Lista de Diccionarios de tareas
+            
+        Returns:
+            Lista de Objetos clase Tarea con informacion cargada
+            
+        """
         if lista_dic != None:
-            print(lista_dic)
             lista_objs = []
             for tarea in lista_dic:
-                print(tarea)
                 lista_objs.append(self._conversor_Obj(tarea))
             return lista_objs
         else: 
             return []
 
-    def conversor_total_obj_dic(self, lista_objs):
+    def conversor_total_obj_dic(self, lista_objs : list) -> list:
+        """
+        Convierte todos los Objetos Tarea de la lista en Diccionarios
+        
+        Args:
+            lista_obj   : list      Lista de Objetos de tareas
+            
+        Returns:
+            Lista de Diccionarios informacion cargada
+            
+        """
         lista_dic = []
         for tarea in lista_objs:
             lista_dic.append(self._conversor_Dicc(tarea))
