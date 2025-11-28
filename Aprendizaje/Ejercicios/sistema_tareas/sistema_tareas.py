@@ -1,6 +1,6 @@
 from tareas import Tarea, TareaDB, CrearTareaDB
 from historial_tareas import Guardador
-from historial_tareas import (crear_tarea_db , cargar_historial_db)
+from historial_tareas import (crear_tarea_db , cargar_historial_db, eliminar_tarea_db)
 from enumeraciones import Importancias, Categorias
 from colorama import init, Fore, Style
 from fastapi import FastAPI
@@ -427,21 +427,23 @@ class SistemaTareas:
 def main():
 
     Sistema = SistemaTareas()
-    #Sistema.menu_principal()
-
-    
-
-    #@app.post()
+    Sistema.menu_principal()
 
 
 #if __name__ == "__main__":
-app = FastAPI(title="sistema de tareas")
+    #main()
+
+app = FastAPI(title="Sistema de Tareas API v.1")
 
 @app.get("/tareas", response_model=list[TareaDB])
 def obtener_tarea():
-    return cargar_historial_db
+    return cargar_historial_db()
+
 @app.post("/tareas", response_model=TareaDB)
 def crear_tarea(tarea: CrearTareaDB):
-    return crear_tarea_db("TRABAJO", "ALTA", "Proyecto IA", "", False , "", "", "", "", "")
-main()
+    return crear_tarea_db(tarea)
+
+@app.delete("/tareas", response_model=list[TareaDB])
+def eliminar_tarea(index : int):
+    return eliminar_tarea_db(index)
 

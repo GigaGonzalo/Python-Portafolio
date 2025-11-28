@@ -45,6 +45,9 @@ class Guardador:
         except (json.JSONDecodeError, Exception) as e:
             print(f"{e}")
 
+            
+#sistema = SistemaTareas()
+
 def crear_tarea_db(categoria : str , importancia : str , tex_tarea : str , fecha_creaccion : str,
 recordatorio : str , fecha_vencimiento_año : str , fecha_vencimiento_mes : str , fecha_vencimiento_dia , 
 hora_alarma : str , min_alarma : str) -> Dict:
@@ -67,5 +70,16 @@ hora_alarma : str , min_alarma : str) -> Dict:
     self._guardar_historial(lista_tareas)
     return n_tarea
 
-def cargar_historial_db(self):
-    return self._cargar_historial()
+def cargar_historial_db():
+    return save._cargar_historial()
+
+def eliminar_tarea_db(index_eliminar : int):
+    lista = self._cargar_historial()
+    lista.pop(index_eliminar - 1)
+    #lista_reindexada = sistema.reindexado(lista)
+    self._guardar_historial(lista_reindexada)
+    return lista_reindexada
+
+conector = Guardador()
+
+
