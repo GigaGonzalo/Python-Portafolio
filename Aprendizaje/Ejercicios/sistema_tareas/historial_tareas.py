@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Dict, List
 
 url = "historial_tareas.json"
 
@@ -43,3 +44,28 @@ class Guardador:
                 json.dump(limpio, archivo, ensure_ascii=False, indent=2)
         except (json.JSONDecodeError, Exception) as e:
             print(f"{e}")
+
+def crear_tarea_db(categoria : str , importancia : str , tex_tarea : str , fecha_creaccion : str,
+recordatorio : str , fecha_vencimiento_año : str , fecha_vencimiento_mes : str , fecha_vencimiento_dia , 
+hora_alarma : str , min_alarma : str) -> Dict:
+    lista_tareas = self._cargar_historial()
+    n_index = max((t["index"] for t in lista_tareas), default = 0) + 1
+    n_tarea = {
+        "index" : n_index ,
+        "categoria" : categoria ,
+        "importancia" : importancia ,
+        "tex_tarea" : tex_tarea ,
+        "fecha_creaccion" : fecha_creaccion ,
+        "recordatorio" : recordatorio ,
+        "fecha_vencimiento_año" : fecha_vencimiento_año ,
+        "fecha_vencimiento_mes" : fecha_vencimiento_mes ,
+        "fecha_vencimiento_dia" : fecha_vencimiento_dia , 
+        "hora_alarma" : hora_alarma , 
+        "min_alarma" : min_alarma 
+    }
+    lista_tareas.append(n_tarea)
+    self._guardar_historial(lista_tareas)
+    return n_tarea
+
+def cargar_historial_db(self):
+    return self._cargar_historial()

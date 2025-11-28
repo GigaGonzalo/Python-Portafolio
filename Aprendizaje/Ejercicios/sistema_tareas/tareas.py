@@ -1,5 +1,8 @@
 
 from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional
+
 class Tarea:
 
     def __init__(self):
@@ -77,5 +80,28 @@ class Tarea:
         return self.min_alarma
         
     
+class TareaDB(BaseModel):
+    index : int
+    categoria : Optional[str] = None
+    importancia : Optional[str] = None
+    tex_tarea : Optional[str] = "Vacio"
+    fecha_creaccion : str
+    recordatorio : bool = False
+    fecha_vencimiento_año : str
+    fecha_vencimiento_mes : str
+    fecha_vencimiento_dia : str
+    hora_alarma : str
+    min_alarma : str
 
-        
+class CrearTareaDB(BaseModel):
+    index : int
+    categoria : Optional[str] = None
+    importancia : Optional[str] = None
+    tex_tarea : Optional[str] = "Vacio"
+    fecha_creaccion : str
+    recordatorio : bool = False
+    fecha_vencimiento_año : str
+    fecha_vencimiento_mes : str
+    fecha_vencimiento_dia : str
+    hora_alarma : str
+    min_alarma : str

@@ -1,7 +1,9 @@
-from tareas import Tarea
+from tareas import Tarea, TareaDB, CrearTareaDB
 from historial_tareas import Guardador
+from historial_tareas import (crear_tarea_db , cargar_historial_db)
 from enumeraciones import Importancias, Categorias
 from colorama import init, Fore, Style
+from fastapi import FastAPI
 
 init(autoreset=True)
 
@@ -422,9 +424,24 @@ class SistemaTareas:
             lista_dic.append(self._conversor_Dicc(tarea))
         return lista_dic
 
+def main():
 
-Sistema = SistemaTareas()
-Sistema.menu_principal()
-        
+    Sistema = SistemaTareas()
+    #Sistema.menu_principal()
 
+    
+
+    #@app.post()
+
+
+#if __name__ == "__main__":
+app = FastAPI(title="sistema de tareas")
+
+@app.get("/tareas", response_model=list[TareaDB])
+def obtener_tarea():
+    return cargar_historial_db
+@app.post("/tareas", response_model=TareaDB)
+def crear_tarea(tarea: CrearTareaDB):
+    return crear_tarea_db("TRABAJO", "ALTA", "Proyecto IA", "", False , "", "", "", "", "")
+main()
 
