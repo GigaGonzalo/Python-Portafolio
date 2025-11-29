@@ -211,6 +211,7 @@ class SistemaTareas:
         lista_reindexada = self.reindexado(lista)
         self.guardar._guardar_historial(lista_reindexada)
         print(Fore.RED + "❌ TAREA ELIMINADA EXITOSAMENTE!!")
+        return lista_reindexada
 
     def reindexado(self, lista_hueco: list) -> list:
         """
@@ -430,20 +431,5 @@ def main():
     Sistema.menu_principal()
 
 
-#if __name__ == "__main__":
-    #main()
-
-app = FastAPI(title="Sistema de Tareas API v.1")
-
-@app.get("/tareas", response_model=list[TareaDB])
-def obtener_tarea():
-    return cargar_historial_db()
-
-@app.post("/tareas", response_model=TareaDB)
-def crear_tarea(tarea: CrearTareaDB):
-    return crear_tarea_db(tarea)
-
-@app.delete("/tareas", response_model=list[TareaDB])
-def eliminar_tarea(index : int):
-    return eliminar_tarea_db(index)
-
+if __name__ == "__main__":
+    main()

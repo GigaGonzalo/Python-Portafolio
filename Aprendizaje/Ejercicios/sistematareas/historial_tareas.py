@@ -1,11 +1,11 @@
 import json
 import os
 from typing import Dict, List
+#from sistema_tareas import SistemaTareas
 
-url = "historial_tareas.json"
+url = "tareas.json"
 
 class Guardador:
-
 
     def __init__(self):
         self.url = "historial_tareas.json"
@@ -19,6 +19,7 @@ class Guardador:
                     return json.load(archivo)
         except (json.JSONDecodeError, Exception) as e:
             print(json.load(archivo))
+
             print(f"{e}")
 
     def _guardar_historial(self, historial_tareas):
@@ -48,17 +49,20 @@ class Guardador:
             
 #sistema = SistemaTareas()
 
-def crear_tarea_db(categoria : str , importancia : str , tex_tarea : str , fecha_creaccion : str,
-recordatorio : str , fecha_vencimiento_año : str , fecha_vencimiento_mes : str , fecha_vencimiento_dia , 
+conector = Guardador()
+
+def crear_tarea_db(index : int, categoria : str , importancia : str , tex_tarea : str , fecha_creacion : str,
+recordatorio : bool , fecha_vencimiento_año : str , fecha_vencimiento_mes : str , fecha_vencimiento_dia : str, 
 hora_alarma : str , min_alarma : str) -> Dict:
-    lista_tareas = self._cargar_historial()
+    lista_tareas = conector._cargar_historial()
     n_index = max((t["index"] for t in lista_tareas), default = 0) + 1
+    print(n_index)
     n_tarea = {
         "index" : n_index ,
         "categoria" : categoria ,
         "importancia" : importancia ,
         "tex_tarea" : tex_tarea ,
-        "fecha_creaccion" : fecha_creaccion ,
+        "fecha_creacion" : fecha_creacion ,
         "recordatorio" : recordatorio ,
         "fecha_vencimiento_año" : fecha_vencimiento_año ,
         "fecha_vencimiento_mes" : fecha_vencimiento_mes ,
@@ -67,19 +71,19 @@ hora_alarma : str , min_alarma : str) -> Dict:
         "min_alarma" : min_alarma 
     }
     lista_tareas.append(n_tarea)
-    self._guardar_historial(lista_tareas)
+    conector._guardar_historial(lista_tareas)
     return n_tarea
 
 def cargar_historial_db():
-    return save._cargar_historial()
+    return conector._cargar_historial()
 
 def eliminar_tarea_db(index_eliminar : int):
-    lista = self._cargar_historial()
+    lista = conector._cargar_historial()
     lista.pop(index_eliminar - 1)
-    #lista_reindexada = sistema.reindexado(lista)
-    self._guardar_historial(lista_reindexada)
-    return lista_reindexada
-
-conector = Guardador()
-
-
+    lista.sort(key=lambda x: x["index"])
+    index = 1
+    for tarea in lista:
+        tarea["index"] = index
+        index += 1
+    conector._guardar_historial(lista)
+    return lista

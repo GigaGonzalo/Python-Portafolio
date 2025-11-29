@@ -85,7 +85,7 @@ class TareaDB(BaseModel):
     categoria : Optional[str] = None
     importancia : Optional[str] = None
     tex_tarea : Optional[str] = "Vacio"
-    fecha_creaccion : str
+    fecha_creacion : str
     recordatorio : bool = False
     fecha_vencimiento_año : str
     fecha_vencimiento_mes : str
@@ -95,13 +95,13 @@ class TareaDB(BaseModel):
 
 class CrearTareaDB(BaseModel):
     index : int
-    categoria : Optional[str] = None
-    importancia : Optional[str] = None
+    categoria : Optional[str] = "Sin categoria"
+    importancia : Optional[str] = "Sin etiqueta"
     tex_tarea : Optional[str] = "Vacio"
-    fecha_creaccion : str
-    recordatorio : bool = False
-    fecha_vencimiento_año : str
-    fecha_vencimiento_mes : str
-    fecha_vencimiento_dia : str
-    hora_alarma : str
-    min_alarma : str
+    fecha_creacion : Optional[str] = "00/00/0000"
+    recordatorio : Optional[bool] = False
+    fecha_vencimiento_año : Optional[str] = "00"
+    fecha_vencimiento_mes : Optional[str] = "00"
+    fecha_vencimiento_dia : Optional[str] = "00"
+    hora_alarma : Optional[str] = "00"
+    min_alarma : Optional[str] = "00"
