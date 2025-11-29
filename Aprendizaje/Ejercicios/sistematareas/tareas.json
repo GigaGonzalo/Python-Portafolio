@@ -1,16 +1,18 @@
 [
   {
     "index": 1,
-    "categoria": "ESCUELA",
-    "importancia": "MEDIO",
-    "tex_tarea": "Texto prueba 2",
-    "fecha_creacion": "2025-11-29 15:22",
+    "categoria": "TRABAJO",
+    "importancia": "ALTO",
+    "tex_tarea": "VATOS LOKOS 4EVER MY HOMMIE",
+    "fecha_creacion": "29/11/2025",
     "recordatorio": false,
     "fecha_vencimiento_año": "",
     "fecha_vencimiento_mes": "",
-    "fecha_vencimiento_dia": "",
-    "hora_alarma": "",
-    "min_alarma": ""
+    "fecha_vencimiento_dia": "00",
+    "hora_alarma": "00",
+    "min_alarma": "00",
+    "fecha_vancimiento_año": "00",
+    "fecha_vencimiento_mex": "00"
   },
   {
     "index": 2,
@@ -40,15 +42,15 @@
   },
   {
     "index": 4,
-    "categoria": "string",
-    "importancia": "string",
-    "tex_tarea": "Vatos Locos 4ever",
-    "fecha_creacion": "string",
+    "categoria": "HOGAR",
+    "importancia": "Sin etiqueta",
+    "tex_tarea": "ROPA LAVE",
+    "fecha_creacion": "29/11/2025",
     "recordatorio": false,
-    "fecha_vencimiento_año": "string",
-    "fecha_vencimiento_mes": "string",
-    "fecha_vencimiento_dia": "string",
-    "hora_alarma": "string",
-    "min_alarma": "string"
+    "fecha_vencimiento_año": "00",
+    "fecha_vencimiento_mes": "00",
+    "fecha_vencimiento_dia": "00",
+    "hora_alarma": "00",
+    "min_alarma": "00"
   }
 ]

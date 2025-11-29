@@ -55,8 +55,10 @@ def crear_tarea_db(index : int, categoria : str , importancia : str , tex_tarea 
 recordatorio : bool , fecha_vencimiento_año : str , fecha_vencimiento_mes : str , fecha_vencimiento_dia : str, 
 hora_alarma : str , min_alarma : str) -> Dict:
     lista_tareas = conector._cargar_historial()
-    n_index = max((t["index"] for t in lista_tareas), default = 0) + 1
-    print(n_index)
+    if index in ((t["index"] for t in lista_tareas)):
+        pass
+    else:
+        n_index = max((t["index"] for t in lista_tareas), default = 0) + 1
     n_tarea = {
         "index" : n_index ,
         "categoria" : categoria ,
@@ -87,3 +89,6 @@ def eliminar_tarea_db(index_eliminar : int):
         index += 1
     conector._guardar_historial(lista)
     return lista
+
+def guardar_tarea_db(lista : list):
+    conector._guardar_historial(lista)
