@@ -1,56 +1,15 @@
 [
   {
-    "index": 1,
-    "categoria": "TRABAJO",
-    "importancia": "ALTO",
-    "tex_tarea": "VATOS LOKOS 4EVER MY HOMMIE",
-    "fecha_creacion": "29/11/2025",
-    "recordatorio": false,
-    "fecha_vencimiento_año": "",
-    "fecha_vencimiento_mes": "",
-    "fecha_vencimiento_dia": "00",
-    "hora_alarma": "00",
-    "min_alarma": "00",
-    "fecha_vancimiento_año": "00",
-    "fecha_vencimiento_mex": "00"
-  },
-  {
     "index": 2,
     "categoria": "TRABAJO",
-    "importancia": "BAJO",
-    "tex_tarea": "Pepe",
-    "fecha_creacion": "2025-11-29 15:22",
-    "recordatorio": true,
-    "fecha_vencimiento_año": "2026",
-    "fecha_vencimiento_mes": "05",
-    "fecha_vencimiento_dia": "15",
-    "hora_alarma": "12",
-    "min_alarma": "14"
-  },
-  {
-    "index": 3,
-    "categoria": "HOGAR",
     "importancia": "ALTO",
-    "tex_tarea": "PLATOS",
-    "fecha_creacion": "29/11/2025",
-    "recordatorio": false,
-    "fecha_vencimiento_año": "string",
-    "fecha_vencimiento_mes": "string",
-    "fecha_vencimiento_dia": "string",
-    "hora_alarma": "string",
-    "min_alarma": "string"
-  },
-  {
-    "index": 4,
-    "categoria": "HOGAR",
-    "importancia": "Sin etiqueta",
-    "tex_tarea": "ROPA LAVE",
-    "fecha_creacion": "29/11/2025",
-    "recordatorio": false,
-    "fecha_vencimiento_año": "00",
-    "fecha_vencimiento_mes": "00",
-    "fecha_vencimiento_dia": "00",
-    "hora_alarma": "00",
-    "min_alarma": "00"
+    "tex_tarea": "Presentacion",
+    "fecha_creacion": "2025-11-29 21:48",
+    "recordatorio": true,
+    "fecha_vencimiento_año": "2025",
+    "fecha_vencimiento_mes": "12",
+    "fecha_vencimiento_dia": "15",
+    "hora_alarma": "13",
+    "min_alarma": "15"
   }
 ]
