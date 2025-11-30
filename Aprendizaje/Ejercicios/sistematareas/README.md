@@ -18,7 +18,7 @@ Un sistema completo de gestión de tareas con interfaz de consola **Y** API REST
 - **Modelos de respuesta** tipados
 - **Manejo de errores** HTTP estándar
 
-## 📸 Screenshots
+## 📸   Screenshots
 
 ![alt text](rmst_1.png)
 ![alt text](rmst_2.png)

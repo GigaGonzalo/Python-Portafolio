@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from historial_tareas import (cargar_historial_db, crear_tarea_db, eliminar_tarea_db, guardar_tarea_db)
 from tareas import TareaDB , CrearTareaDB
 
