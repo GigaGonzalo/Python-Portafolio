@@ -1,0 +1,883 @@
+🚀 Curso Completo de PostgreSQL con Python
+
+¡Hola! Seré tu guía en el aprendizaje de PostgreSQL. Empezaremos desde cero y avanzaremos paso a paso.
+📚 Índice del Curso
+
+    Fundamentos de PostgreSQL
+
+    Instalación y Configuración
+
+    Comandos Básicos SQL
+
+    Tipos de Datos
+
+    Funciones y Operadores
+
+    PostgreSQL con Python
+
+    Buenas Prácticas
+
+    Proyectos Prácticos
+
+1. FUNDAMENTOS DE POSTGRESQL
+¿Qué es PostgreSQL?
+
+PostgreSQL es un sistema de gestión de bases de datos relacionales (RDBMS) de código abierto, potente y con amplias características. Es conocido por:
+
+    ACID Compliance: Atomicidad, Consistencia, Aislamiento, Durabilidad
+
+    Extensible: Puedes crear tus propios tipos de datos, funciones, operadores
+
+    SQL Compliance: Soporte estándar SQL
+
+Arquitectura Básica
+text
+
+Cliente → PostgreSQL Server → Base de Datos → Tablas → Filas/Columnas
+
+2. INSTALACIÓN Y CONFIGURACIÓN
+Instalación en Ubuntu/Debian
+bash
+
+# Actualizar repositorios
+sudo apt update
+
+# Instalar PostgreSQL
+sudo apt install postgresql postgresql-contrib
+
+# Verificar instalación
+sudo systemctl status postgresql
+
+# Acceder a PostgreSQL
+sudo -u postgres psql
+
+Configuración Inicial
+sql
+
+-- Crear un nuevo usuario
+CREATE USER mi_usuario WITH PASSWORD 'mi_password';
+
+-- Crear una base de datos
+CREATE DATABASE mi_base_datos;
+
+-- Dar privilegios al usuario
+GRANT ALL PRIVILEGES ON DATABASE mi_base_datos TO mi_usuario;
+
+3. COMANDOS BÁSICOS SQL
+Conexión y Comandos Meta
+sql
+
+-- Listar bases de datos
+\l
+
+-- Conectarse a una base de datos
+\c nombre_base_datos
+
+-- Listar tablas
+\dt
+
+-- Ver estructura de una tabla
+\d nombre_tabla
+
+-- Salir de psql
+\q
+
+Creación de Tablas
+sql
+
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,           -- Auto-incremental
+    nombre VARCHAR(100) NOT NULL,    -- Texto máximo 100 chars
+    email VARCHAR(255) UNIQUE NOT NULL,
+    edad INT CHECK (edad >= 0),      -- Validación
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    salario DECIMAL(10, 2)           -- 10 dígitos, 2 decimales
+);
+
+CRUD Básico
+sql
+
+-- INSERT (Crear)
+INSERT INTO usuarios (nombre, email, edad) 
+VALUES ('Juan Pérez', 'juan@email.com', 25);
+
+-- SELECT (Leer)
+SELECT * FROM usuarios;
+SELECT nombre, email FROM usuarios WHERE edad > 20;
+
+-- UPDATE (Actualizar)
+UPDATE usuarios SET activo = FALSE WHERE id = 1;
+
+-- DELETE (Eliminar)
+DELETE FROM usuarios WHERE id = 1;
+
+4. TIPOS DE DATOS EN POSTGRESQL
+Categorías Principales:
+Tipos Numéricos
+sql
+
+-- Enteros
+SMALLINT     -- -32768 a 32767
+INTEGER      -- -2147483648 a 2147483647
+BIGINT       -- -9223372036854775808 a 9223372036854775807
+
+-- Decimales
+DECIMAL(p, s)  -- Precisión exacta
+NUMERIC(p, s)  -- Igual que DECIMAL
+REAL           -- 6 dígitos decimales
+DOUBLE PRECISION -- 15 dígitos decimales
+
+-- Serial (auto-incremental)
+SERIAL        -- 1 a 2147483647
+BIGSERIAL     -- 1 a 9223372036854775807
+
+Tipos de Texto
+sql
+
+VARCHAR(n)    -- Texto variable (max n caracteres)
+CHAR(n)       -- Texto fijo (siempre n caracteres)
+TEXT          -- Texto sin límite
+
+Tipos Fecha/Hora
+sql
+
+DATE          -- Fecha (YYYY-MM-DD)
+TIME          -- Hora (HH:MM:SS)
+TIMESTAMP     -- Fecha y hora
+TIMESTAMPTZ   -- Fecha/hora con zona horaria
+INTERVAL      -- Intervalo de tiempo
+
+Tipos Booleanos
+sql
+
+BOOLEAN       -- TRUE, FALSE, NULL
+
+Tipos Especiales PostgreSQL
+sql
+
+-- Arrays
+INT[]         -- Array de enteros
+TEXT[][]      -- Array bidimensional de texto
+
+-- JSON
+JSON          -- Datos JSON (validación)
+JSONB         -- JSON binario (más eficiente)
+
+-- UUID
+UUID          -- Identificador único universal
+
+-- Enumerados
+CREATE TYPE estado AS ENUM ('activo', 'inactivo', 'pendiente');
+
+5. FUNCIONES Y OPERADORES
+Funciones de Cadena
+sql
+
+-- Concatenación
+SELECT CONCAT('Hola', ' ', 'Mundo');
+SELECT 'Hola' || ' ' || 'Mundo';
+
+-- Longitud
+SELECT LENGTH('texto');
+SELECT CHAR_LENGTH('texto');
+
+-- Mayúsculas/Minúsculas
+SELECT UPPER('hola');
+SELECT LOWER('HOLA');
+
+-- Extraer partes
+SELECT SUBSTRING('PostgreSQL' FROM 1 FOR 5);  -- 'Postg'
+SELECT LEFT('PostgreSQL', 4);                  -- 'Post'
+SELECT RIGHT('PostgreSQL', 6);                 -- 'greSQL'
+
+-- Reemplazar
+SELECT REPLACE('Hola Mundo', 'Mundo', 'PostgreSQL');
+
+-- Trim (eliminar espacios)
+SELECT TRIM('  texto  ');
+SELECT LTRIM('  texto');
+SELECT RTRIM('texto  ');
+
+Funciones Numéricas
+sql
+
+-- Redondeo
+SELECT ROUND(15.75, 1);    -- 15.8
+SELECT CEIL(15.2);         -- 16
+SELECT FLOOR(15.8);        -- 15
+
+-- Valor absoluto
+SELECT ABS(-15);           -- 15
+
+-- Potencia y raíz
+SELECT POWER(2, 3);        -- 8
+SELECT SQRT(16);           -- 4
+
+-- Aleatorio
+SELECT RANDOM();           -- número entre 0 y 1
+SELECT FLOOR(RANDOM() * 100) + 1;  -- 1 a 100
+
+Funciones de Fecha/Hora
+sql
+
+-- Fecha actual
+SELECT CURRENT_DATE;
+SELECT CURRENT_TIME;
+SELECT CURRENT_TIMESTAMP;
+SELECT NOW();
+
+-- Extraer partes
+SELECT EXTRACT(YEAR FROM CURRENT_DATE);
+SELECT EXTRACT(MONTH FROM CURRENT_DATE);
+SELECT EXTRACT(DAY FROM CURRENT_DATE);
+
+-- Operaciones con fechas
+SELECT CURRENT_DATE + INTERVAL '7 days';
+SELECT CURRENT_DATE - INTERVAL '1 month';
+
+-- Formateo
+SELECT TO_CHAR(CURRENT_DATE, 'DD/MM/YYYY');
+SELECT TO_CHAR(CURRENT_TIMESTAMP, 'HH24:MI:SS');
+
+Funciones de Agregación
+sql
+
+-- Conteo
+SELECT COUNT(*) FROM usuarios;
+
+-- Suma
+SELECT SUM(salario) FROM empleados;
+
+-- Promedio
+SELECT AVG(edad) FROM usuarios;
+
+-- Máximo/Mínimo
+SELECT MAX(salario) FROM empleados;
+SELECT MIN(edad) FROM usuarios;
+
+-- Agrupamiento
+SELECT departamento, AVG(salario) 
+FROM empleados 
+GROUP BY departamento;
+
+6. POSTGRESQL CON PYTHON
+Instalación de psycopg2
+bash
+
+pip install psycopg2-binary
+# o para mejor rendimiento
+pip install psycopg2
+
+Conexión Básica
+python
+
+import psycopg2
+from psycopg2 import OperationalError
+
+def create_connection():
+    try:
+        connection = psycopg2.connect(
+            host="localhost",
+            database="mi_base_datos",
+            user="mi_usuario",
+            password="mi_password",
+            port="5432"
+        )
+        print("✅ Conexión exitosa a PostgreSQL")
+        return connection
+    except OperationalError as e:
+        print(f"❌ Error de conexión: {e}")
+        return None
+
+# Usar la conexión
+conn = create_connection()
+if conn:
+    cursor = conn.cursor()
+    cursor.execute("SELECT version();")
+    print(cursor.fetchone())
+    conn.close()
+
+CRUD con Python
+python
+
+class PostgreSQLManager:
+    def __init__(self):
+        self.conn = None
+        self.cursor = None
+        
+    def connect(self, dbname, user, password, host="localhost", port="5432"):
+        """Establecer conexión"""
+        try:
+            self.conn = psycopg2.connect(
+                dbname=dbname,
+                user=user,
+                password=password,
+                host=host,
+                port=port
+            )
+            self.cursor = self.conn.cursor()
+            print("✅ Conexión establecida")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+    
+    def create_table(self):
+        """Crear tabla de ejemplo"""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS productos (
+            id SERIAL PRIMARY KEY,
+            nombre VARCHAR(100) NOT NULL,
+            precio DECIMAL(10, 2) NOT NULL,
+            stock INT DEFAULT 0,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+        self.cursor.execute(create_table_query)
+        self.conn.commit()
+        print("✅ Tabla creada")
+    
+    def insert_product(self, nombre, precio, stock):
+        """Insertar producto"""
+        insert_query = """
+        INSERT INTO productos (nombre, precio, stock)
+        VALUES (%s, %s, %s)
+        RETURNING id;
+        """
+        self.cursor.execute(insert_query, (nombre, precio, stock))
+        product_id = self.cursor.fetchone()[0]
+        self.conn.commit()
+        print(f"✅ Producto insertado con ID: {product_id}")
+        return product_id
+    
+    def get_all_products(self):
+        """Obtener todos los productos"""
+        select_query = "SELECT * FROM productos;"
+        self.cursor.execute(select_query)
+        return self.cursor.fetchall()
+    
+    def update_product(self, product_id, **kwargs):
+        """Actualizar producto"""
+        if not kwargs:
+            return
+        
+        set_clause = ", ".join([f"{key} = %s" for key in kwargs.keys()])
+        values = list(kwargs.values())
+        values.append(product_id)
+        
+        update_query = f"""
+        UPDATE productos 
+        SET {set_clause}
+        WHERE id = %s;
+        """
+        self.cursor.execute(update_query, values)
+        self.conn.commit()
+        print(f"✅ Producto {product_id} actualizado")
+    
+    def delete_product(self, product_id):
+        """Eliminar producto"""
+        delete_query = "DELETE FROM productos WHERE id = %s;"
+        self.cursor.execute(delete_query, (product_id,))
+        self.conn.commit()
+        print(f"✅ Producto {product_id} eliminado")
+    
+    def close(self):
+        """Cerrar conexión"""
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
+        print("✅ Conexión cerrada")
+
+# Uso del gestor
+if __name__ == "__main__":
+    db = PostgreSQLManager()
+    db.connect("mi_base_datos", "mi_usuario", "mi_password")
+    
+    # Crear tabla
+    db.create_table()
+    
+    # Insertar productos
+    db.insert_product("Laptop", 999.99, 10)
+    db.insert_product("Mouse", 25.50, 100)
+    
+    # Consultar
+    productos = db.get_all_products()
+    for p in productos:
+        print(p)
+    
+    # Actualizar
+    db.update_product(1, precio=899.99, stock=8)
+    
+    # Eliminar
+    db.delete_product(2)
+    
+    db.close()
+
+Context Managers (Mejor Práctica)
+python
+
+import psycopg2
+from contextlib import contextmanager
+
+@contextmanager
+def get_db_connection():
+    """Context manager para conexiones a la base de datos"""
+    conn = psycopg2.connect(
+        dbname="mi_base_datos",
+        user="mi_usuario",
+        password="mi_password"
+    )
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+# Uso con with statement
+with get_db_connection() as conn:
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT * FROM usuarios;")
+        resultados = cursor.fetchall()
+        for row in resultados:
+            print(row)
+
+Pool de Conexiones
+python
+
+from psycopg2 import pool
+
+# Crear pool de conexiones
+connection_pool = pool.SimpleConnectionPool(
+    1,  # Conexiones mínimas
+    10, # Conexiones máximas
+    host="localhost",
+    database="mi_base_datos",
+    user="mi_usuario",
+    password="mi_password"
+)
+
+# Obtener conexión del pool
+conn = connection_pool.getconn()
+
+try:
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos;")
+    print(cursor.fetchall())
+finally:
+    # Devolver conexión al pool
+    connection_pool.putconn(conn)
+
+# Cerrar pool al final
+connection_pool.closeall()
+
+7. BUENAS PRÁCTICAS
+1. Diseño de Base de Datos
+sql
+
+-- Usar nombres descriptivos
+CREATE TABLE ordenes_clientes;  -- ❌ Mal
+CREATE TABLE orders;            -- ✅ Bien (inglés)
+
+-- Normalización apropiada
+-- 1NF: Atributos atómicos
+-- 2NF: Dependencia completa de la clave
+-- 3NF: Sin dependencias transitivas
+
+-- Índices estratégicos
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_ventas_fecha ON ventas(fecha);
+
+2. Seguridad
+python
+
+# ❌ MAL - SQL Injection vulnerable
+query = f"SELECT * FROM usuarios WHERE nombre = '{nombre}'"
+
+# ✅ BIEN - Usar parámetros
+query = "SELECT * FROM usuarios WHERE nombre = %s"
+cursor.execute(query, (nombre,))
+
+# ✅ MEJOR - Stored procedures
+cursor.callproc('obtener_usuario', (nombre,))
+
+3. Rendimiento
+sql
+
+-- Usar EXPLAIN para analizar consultas
+EXPLAIN ANALYZE SELECT * FROM usuarios WHERE edad > 25;
+
+-- Optimizar consultas
+-- ❌ Mal
+SELECT * FROM productos WHERE LOWER(nombre) = 'laptop';
+
+-- ✅ Bien
+SELECT * FROM productos WHERE nombre ILIKE 'laptop';
+
+-- Limitar resultados
+SELECT * FROM logs ORDER BY fecha DESC LIMIT 100;
+
+4. Transacciones
+python
+
+def transferencia(cuenta_origen, cuenta_destino, monto):
+    """Ejemplo de transacción ACID"""
+    try:
+        conn = psycopg2.connect(...)
+        cursor = conn.cursor()
+        
+        # Iniciar transacción
+        conn.autocommit = False
+        
+        # Verificar fondos
+        cursor.execute(
+            "SELECT saldo FROM cuentas WHERE id = %s FOR UPDATE",
+            (cuenta_origen,)
+        )
+        saldo_actual = cursor.fetchone()[0]
+        
+        if saldo_actual < monto:
+            raise ValueError("Fondos insuficientes")
+        
+        # Retirar de origen
+        cursor.execute(
+            "UPDATE cuentas SET saldo = saldo - %s WHERE id = %s",
+            (monto, cuenta_origen)
+        )
+        
+        # Depositar en destino
+        cursor.execute(
+            "UPDATE cuentas SET saldo = saldo + %s WHERE id = %s",
+            (monto, cuenta_destino)
+        )
+        
+        # Registrar transacción
+        cursor.execute(
+            """
+            INSERT INTO transacciones (origen, destino, monto)
+            VALUES (%s, %s, %s)
+            """,
+            (cuenta_origen, cuenta_destino, monto)
+        )
+        
+        # Confirmar transacción
+        conn.commit()
+        print("✅ Transferencia exitosa")
+        
+    except Exception as e:
+        # Revertir en caso de error
+        conn.rollback()
+        print(f"❌ Error: {e}")
+    finally:
+        conn.close()
+
+8. PROYECTO PRÁCTICO: SISTEMA DE BLOG
+Estructura de Base de Datos
+sql
+
+-- Tabla de usuarios
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    bio TEXT,
+    avatar_url VARCHAR(500),
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activo BOOLEAN DEFAULT TRUE
+);
+
+-- Tabla de posts
+CREATE TABLE posts (
+    id SERIAL PRIMARY KEY,
+    usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
+    titulo VARCHAR(200) NOT NULL,
+    contenido TEXT NOT NULL,
+    resumen VARCHAR(500),
+    fecha_publicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado VARCHAR(20) DEFAULT 'borrador' CHECK (estado IN ('borrador', 'publicado', 'archivado')),
+    vistas INT DEFAULT 0
+);
+
+-- Tabla de comentarios
+CREATE TABLE comentarios (
+    id SERIAL PRIMARY KEY,
+    post_id INT REFERENCES posts(id) ON DELETE CASCADE,
+    usuario_id INT REFERENCES usuarios(id) ON DELETE SET NULL,
+    contenido TEXT NOT NULL,
+    fecha_comentario TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    padre_id INT REFERENCES comentarios(id) ON DELETE CASCADE,
+    likes INT DEFAULT 0
+);
+
+-- Tabla de etiquetas
+CREATE TABLE etiquetas (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL,
+    descripcion TEXT
+);
+
+-- Tabla intermedia posts-etiquetas
+CREATE TABLE posts_etiquetas (
+    post_id INT REFERENCES posts(id) ON DELETE CASCADE,
+    etiqueta_id INT REFERENCES etiquetas(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, etiqueta_id)
+);
+
+-- Índices para mejor rendimiento
+CREATE INDEX idx_posts_usuario ON posts(usuario_id);
+CREATE INDEX idx_posts_fecha ON posts(fecha_publicacion);
+CREATE INDEX idx_comentarios_post ON comentarios(post_id);
+CREATE INDEX idx_posts_etiquetas_post ON posts_etiquetas(post_id);
+CREATE INDEX idx_posts_estado ON posts(estado);
+
+Clase Python para el Blog
+python
+
+class BlogManager:
+    def __init__(self, connection_params):
+        self.connection_params = connection_params
+        self.conn = None
+        
+    def __enter__(self):
+        self.conn = psycopg2.connect(**self.connection_params)
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.conn:
+            self.conn.close()
+    
+    def crear_usuario(self, username, email, password):
+        """Crear nuevo usuario"""
+        with self.conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO usuarios (username, email, password_hash)
+                VALUES (%s, %s, %s)
+                RETURNING id, fecha_registro;
+            """, (username, email, self._hash_password(password)))
+            result = cursor.fetchone()
+            self.conn.commit()
+            return {
+                'id': result[0],
+                'username': username,
+                'email': email,
+                'fecha_registro': result[1]
+            }
+    
+    def crear_post(self, usuario_id, titulo, contenido, etiquetas=None):
+        """Crear nuevo post"""
+        with self.conn.cursor() as cursor:
+            # Crear post
+            cursor.execute("""
+                INSERT INTO posts (usuario_id, titulo, contenido)
+                VALUES (%s, %s, %s)
+                RETURNING id, fecha_publicacion;
+            """, (usuario_id, titulo, contenido))
+            
+            post_id, fecha = cursor.fetchone()
+            
+            # Agregar etiquetas si existen
+            if etiquetas:
+                for etiqueta in etiquetas:
+                    # Crear etiqueta si no existe
+                    cursor.execute("""
+                        INSERT INTO etiquetas (nombre)
+                        VALUES (%s)
+                        ON CONFLICT (nombre) DO NOTHING;
+                    """, (etiqueta,))
+                    
+                    # Obtener ID de etiqueta
+                    cursor.execute("""
+                        SELECT id FROM etiquetas WHERE nombre = %s;
+                    """, (etiqueta,))
+                    
+                    etiqueta_id = cursor.fetchone()[0]
+                    
+                    # Relacionar post con etiqueta
+                    cursor.execute("""
+                        INSERT INTO posts_etiquetas (post_id, etiqueta_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING;
+                    """, (post_id, etiqueta_id))
+            
+            self.conn.commit()
+            return post_id
+    
+    def obtener_posts_recientes(self, limite=10, offset=0):
+        """Obtener posts más recientes"""
+        with self.conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    p.id,
+                    p.titulo,
+                    p.resumen,
+                    p.fecha_publicacion,
+                    u.username as autor,
+                    COUNT(c.id) as num_comentarios,
+                    ARRAY_AGG(DISTINCT e.nombre) as etiquetas
+                FROM posts p
+                JOIN usuarios u ON p.usuario_id = u.id
+                LEFT JOIN comentarios c ON p.id = c.post_id
+                LEFT JOIN posts_etiquetas pe ON p.id = pe.post_id
+                LEFT JOIN etiquetas e ON pe.etiqueta_id = e.id
+                WHERE p.estado = 'publicado'
+                GROUP BY p.id, u.username
+                ORDER BY p.fecha_publicacion DESC
+                LIMIT %s OFFSET %s;
+            """, (limite, offset))
+            
+            posts = cursor.fetchall()
+            return [
+                {
+                    'id': post[0],
+                    'titulo': post[1],
+                    'resumen': post[2],
+                    'fecha': post[3],
+                    'autor': post[4],
+                    'comentarios': post[5],
+                    'etiquetas': post[6] if post[6][0] else []
+                }
+                for post in posts
+            ]
+    
+    def buscar_posts(self, termino, limite=20):
+        """Buscar posts por término"""
+        with self.conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    p.id,
+                    p.titulo,
+                    p.resumen,
+                    p.fecha_publicacion,
+                    u.username as autor,
+                    TS_RANK(
+                        to_tsvector('spanish', p.titulo || ' ' || p.contenido),
+                        plainto_tsquery('spanish', %s)
+                    ) as relevancia
+                FROM posts p
+                JOIN usuarios u ON p.usuario_id = u.id
+                WHERE 
+                    p.estado = 'publicado' AND
+                    to_tsvector('spanish', p.titulo || ' ' || p.contenido) 
+                    @@ plainto_tsquery('spanish', %s)
+                ORDER BY relevancia DESC
+                LIMIT %s;
+            """, (termino, termino, limite))
+            
+            return cursor.fetchall()
+    
+    def _hash_password(self, password):
+        """Hashear contraseña (simplificado)"""
+        import hashlib
+        return hashlib.sha256(password.encode()).hexdigest()
+
+# Uso del sistema de blog
+if __name__ == "__main__":
+    connection_params = {
+        'dbname': 'blog_db',
+        'user': 'blog_user',
+        'password': 'secure_password',
+        'host': 'localhost'
+    }
+    
+    with BlogManager(connection_params) as blog:
+        # Crear usuario
+        usuario = blog.crear_usuario(
+            'maria_garcia',
+            'maria@email.com',
+            'mi_contraseña_segura'
+        )
+        
+        # Crear post con etiquetas
+        post_id = blog.crear_post(
+            usuario['id'],
+            'Introducción a PostgreSQL',
+            'PostgreSQL es un sistema de base de datos avanzado...',
+            ['postgresql', 'bases-de-datos', 'tutorial']
+        )
+        
+        # Obtener posts recientes
+        posts = blog.obtener_posts_recientes(limite=5)
+        for post in posts:
+            print(f"{post['titulo']} - {post['autor']}")
+
+PRÓXIMAS LECCIONES
+
+En las siguientes sesiones cubriremos:
+Nivel Intermedio:
+
+    Vistas y Vistas Materializadas
+
+    Funciones y Procedimientos Almacenados
+
+    Triggers y Eventos
+
+    Particionamiento de Tablas
+
+    Full-Text Search avanzado
+
+Nivel Avanzado:
+
+    Replicación y High Availability
+
+    Particionamiento Avanzado
+
+    Optimización de Consultas Complejas
+
+    Monitoreo y Mantenimiento
+
+    PostgreSQL con Django/Flask
+
+Proyectos:
+
+    Sistema E-commerce completo
+
+    API REST con FastAPI y PostgreSQL
+
+    Sistema de Análisis de Datos
+
+    Aplicación en Tiempo Real con WebSockets
+
+EJERCICIO PRÁCTICO INICIAL
+python
+
+"""
+EJERCICIO: Sistema de Gestión de Biblioteca
+
+Crea un sistema para gestionar una biblioteca con:
+1. Tabla libros (id, titulo, autor, año, isbn, disponible)
+2. Tabla socios (id, nombre, email, telefono)
+3. Tabla préstamos (id, libro_id, socio_id, fecha_prestamo, fecha_devolucion)
+
+Requisitos:
+- Un libro puede estar prestado a un solo socio
+- Un socio puede tener múltiples libros prestados
+- Calcular multas por retraso en devolución
+- Búsqueda avanzada de libros por título/autor
+"""
+
+RECURSOS ADICIONALES
+Documentación Oficial:
+
+    PostgreSQL Documentation
+
+    psycopg2 Documentation
+
+Herramientas:
+
+    pgAdmin: Interfaz gráfica para PostgreSQL
+
+    DBeaver: Cliente universal de bases de datos
+
+    Postico: Cliente para macOS
+
+Extensiones Útiles:
+sql
+
+-- PostGIS para datos geoespaciales
+CREATE EXTENSION postgis;
+
+-- UUID para identificadores únicos
+CREATE EXTENSION "uuid-ossp";
+
+-- Criptografía
+CREATE EXTENSION pgcrypto;

@@ -1,0 +1,1015 @@
+📚 SELECT: El Corazón de las Consultas en PostgreSQL
+
+El comando SELECT es la herramienta más fundamental y poderosa en SQL. Te permite extraer, filtrar, transformar y analizar datos de tus tablas. Vamos a explorarlo en profundidad.
+ÍNDICE
+
+    Sintaxis Básica
+
+    Cláusulas Principales
+
+    Funciones en SELECT
+
+    Subconsultas
+
+    JOINs y Relaciones
+
+    Expresiones Avanzadas
+
+    Optimización
+
+    Ejemplos Prácticos
+
+1. SINTAXIS BÁSICA
+Estructura Fundamental
+sql
+
+SELECT 
+    [DISTINCT | ALL]
+    columnas | expresiones | funciones
+FROM 
+    tabla | vista | subconsulta
+[WHERE condición]
+[GROUP BY columnas]
+[HAVING condición]
+[ORDER BY columnas [ASC | DESC]]
+[LIMIT número]
+[OFFSET número];
+
+Ejemplos Simples
+sql
+
+-- Seleccionar todas las columnas de una tabla
+SELECT * FROM empleados;
+
+-- Seleccionar columnas específicas
+SELECT nombre, apellido, salario FROM empleados;
+
+-- Seleccionar con alias de columnas
+SELECT 
+    nombre AS nombre_empleado,
+    salario AS salario_mensual,
+    salario * 12 AS salario_anual
+FROM empleados;
+
+2. CLÁUSULAS PRINCIPALES
+WHERE - Filtrado de Filas
+sql
+
+-- Operadores básicos
+SELECT * FROM productos WHERE precio > 100;
+SELECT * FROM usuarios WHERE edad BETWEEN 18 AND 65;
+SELECT * FROM pedidos WHERE fecha BETWEEN '2024-01-01' AND '2024-12-31';
+SELECT * FROM productos WHERE categoria IN ('Electrónica', 'Ropa', 'Hogar');
+
+-- Operadores lógicos
+SELECT * FROM empleados 
+WHERE salario > 50000 AND departamento = 'Ventas';
+
+SELECT * FROM clientes 
+WHERE ciudad = 'Madrid' OR ciudad = 'Barcelona';
+
+SELECT * FROM productos 
+WHERE NOT disponible = false;
+
+-- LIKE y patrones
+SELECT * FROM clientes WHERE nombre LIKE 'María%';  -- Empieza con María
+SELECT * FROM productos WHERE nombre LIKE '%portátil%';  -- Contiene "portátil"
+SELECT * FROM emails WHERE email LIKE '%@gmail.com';  -- Termina con @gmail.com
+
+-- ILIKE (case-insensitive)
+SELECT * FROM clientes WHERE nombre ILIKE 'maría%';  -- No distingue mayúsculas/minúsculas
+
+-- IS NULL / IS NOT NULL
+SELECT * FROM empleados WHERE telefono IS NULL;
+SELECT * FROM clientes WHERE email IS NOT NULL;
+
+DISTINCT - Valores Únicos
+sql
+
+-- Valores únicos de una columna
+SELECT DISTINCT ciudad FROM clientes;
+
+-- Combinaciones únicas de múltiples columnas
+SELECT DISTINCT departamento, ciudad FROM empleados;
+
+-- COUNT con DISTINCT
+SELECT COUNT(DISTINCT ciudad) FROM clientes;
+SELECT COUNT(DISTINCT departamento) FROM empleados;
+
+ORDER BY - Ordenamiento
+sql
+
+-- Orden ascendente (por defecto)
+SELECT * FROM productos ORDER BY precio ASC;
+
+-- Orden descendente
+SELECT * FROM empleados ORDER BY fecha_contratacion DESC;
+
+-- Ordenar por múltiples columnas
+SELECT * FROM estudiantes 
+ORDER BY apellido ASC, nombre ASC, edad DESC;
+
+-- Ordenar por posición de columna (no recomendado pero posible)
+SELECT nombre, apellido, edad FROM personas ORDER BY 3 DESC;  -- Ordena por edad
+
+-- Ordenar por expresión
+SELECT * FROM productos ORDER BY precio * stock DESC;
+SELECT * FROM empleados ORDER BY EXTRACT(YEAR FROM fecha_nacimiento);
+
+LIMIT y OFFSET - Paginación
+sql
+
+-- Primeros N registros
+SELECT * FROM productos LIMIT 10;
+
+-- Paginación básica
+SELECT * FROM productos LIMIT 10 OFFSET 0;   -- Página 1
+SELECT * FROM productos LIMIT 10 OFFSET 10;  -- Página 2
+SELECT * FROM productos LIMIT 10 OFFSET 20;  -- Página 3
+
+-- Con ORDER BY (IMPORTANTE para paginación consistente)
+SELECT * FROM productos 
+ORDER BY fecha_creacion DESC 
+LIMIT 20 OFFSET 40;
+
+-- FETCH (estándar SQL, alternativa a LIMIT)
+SELECT * FROM productos 
+ORDER BY precio DESC 
+OFFSET 10 ROWS 
+FETCH NEXT 5 ROWS ONLY;
+
+3. FUNCIONES EN SELECT
+Funciones de Agregación
+sql
+
+-- Básicas
+SELECT COUNT(*) FROM empleados;
+SELECT COUNT(DISTINCT departamento) FROM empleados;
+SELECT SUM(ventas) FROM pedidos WHERE fecha = CURRENT_DATE;
+SELECT AVG(salario) FROM empleados;
+SELECT MIN(precio), MAX(precio) FROM productos;
+SELECT STDDEV(salario) FROM empleados;  -- Desviación estándar
+SELECT VARIANCE(salario) FROM empleados; -- Varianza
+
+-- Con GROUP BY
+SELECT 
+    departamento,
+    COUNT(*) AS num_empleados,
+    AVG(salario) AS salario_promedio,
+    MAX(salario) AS salario_maximo,
+    MIN(salario) AS salario_minimo
+FROM empleados
+GROUP BY departamento;
+
+-- GROUP BY múltiple
+SELECT 
+    departamento,
+    puesto,
+    COUNT(*) AS cantidad,
+    AVG(salario) AS salario_promedio
+FROM empleados
+GROUP BY departamento, puesto;
+
+-- GROUP BY con filtros
+SELECT 
+    ciudad,
+    COUNT(*) AS total_clientes,
+    SUM(compra_total) AS ventas_totales
+FROM clientes
+WHERE fecha_registro >= '2024-01-01'
+GROUP BY ciudad
+HAVING COUNT(*) > 10;  -- Filtra después de agrupar
+
+Funciones de Cadena en SELECT
+sql
+
+SELECT 
+    nombre,
+    UPPER(nombre) AS nombre_mayusculas,
+    LOWER(nombre) AS nombre_minusculas,
+    LENGTH(nombre) AS longitud_nombre,
+    CONCAT(apellido, ', ', nombre) AS nombre_completo,
+    SUBSTRING(nombre FROM 1 FOR 3) AS primeras_letras,
+    REPLACE(telefono, '-', '') AS telefono_sin_guiones
+FROM clientes;
+
+Funciones de Fecha/Hora
+sql
+
+SELECT 
+    fecha_pedido,
+    EXTRACT(YEAR FROM fecha_pedido) AS año,
+    EXTRACT(MONTH FROM fecha_pedido) AS mes,
+    EXTRACT(DAY FROM fecha_pedido) AS dia,
+    TO_CHAR(fecha_pedido, 'DD/MM/YYYY HH24:MI') AS fecha_formateada,
+    AGE(CURRENT_DATE, fecha_nacimiento) AS edad_exacta,
+    fecha_pedido + INTERVAL '7 days' AS fecha_entrega_estimada
+FROM pedidos;
+
+Funciones Condicionales
+sql
+
+-- CASE expresión condicional
+SELECT 
+    nombre,
+    salario,
+    CASE 
+        WHEN salario < 30000 THEN 'Bajo'
+        WHEN salario BETWEEN 30000 AND 60000 THEN 'Medio'
+        WHEN salario > 60000 THEN 'Alto'
+        ELSE 'Sin especificar'
+    END AS categoria_salarial,
+    CASE departamento
+        WHEN 'Ventas' THEN 'Comercial'
+        WHEN 'IT' THEN 'Tecnología'
+        ELSE 'Otro'
+    END AS tipo_departamento
+FROM empleados;
+
+-- COALESCE (devuelve el primer valor no nulo)
+SELECT 
+    nombre,
+    COALESCE(telefono, 'No especificado') AS telefono,
+    COALESCE(email, telefono, 'Sin contacto') AS contacto
+FROM clientes;
+
+-- NULLIF (devuelve NULL si los valores son iguales)
+SELECT 
+    nombre,
+    NULLIF(salario, 0) AS salario_sin_ceros  -- Convierte 0 en NULL
+FROM empleados;
+
+-- GREATEST y LEAST
+SELECT 
+    producto,
+    precio_actual,
+    precio_anterior,
+    GREATEST(precio_actual, precio_anterior) AS precio_maximo,
+    LEAST(precio_actual, precio_anterior) AS precio_minimo
+FROM productos_historial;
+
+4. SUBCONSULTAS
+Subconsultas Escalares (una sola fila, una columna)
+sql
+
+-- En SELECT
+SELECT 
+    nombre,
+    salario,
+    (SELECT AVG(salario) FROM empleados) AS salario_promedio,
+    salario - (SELECT AVG(salario) FROM empleados) AS diferencia
+FROM empleados;
+
+-- En WHERE
+SELECT * FROM productos 
+WHERE precio > (SELECT AVG(precio) FROM productos);
+
+SELECT * FROM empleados 
+WHERE departamento_id IN (
+    SELECT id FROM departamentos WHERE ciudad = 'Madrid'
+);
+
+-- En HAVING
+SELECT departamento, AVG(salario) 
+FROM empleados 
+GROUP BY departamento
+HAVING AVG(salario) > (
+    SELECT AVG(salario) FROM empleados
+);
+
+Subconsultas de Tabla (múltiples filas)
+sql
+
+-- Con IN
+SELECT * FROM clientes 
+WHERE id IN (
+    SELECT cliente_id FROM pedidos WHERE total > 1000
+);
+
+-- Con EXISTS (más eficiente para grandes conjuntos)
+SELECT * FROM clientes c
+WHERE EXISTS (
+    SELECT 1 FROM pedidos p 
+    WHERE p.cliente_id = c.id AND p.total > 1000
+);
+
+-- Con ANY/SOME
+SELECT * FROM productos 
+WHERE precio > ANY (
+    SELECT precio FROM productos WHERE categoria = 'Premium'
+);
+
+-- Con ALL
+SELECT * FROM empleados 
+WHERE salario > ALL (
+    SELECT salario FROM empleados WHERE departamento = 'Ventas'
+);
+
+Subconsultas Correlacionadas
+sql
+
+-- Productos más caros que el promedio de su categoría
+SELECT p1.*
+FROM productos p1
+WHERE precio > (
+    SELECT AVG(precio) 
+    FROM productos p2 
+    WHERE p2.categoria = p1.categoria
+);
+
+-- Empleados con salario superior al promedio de su departamento
+SELECT e1.*
+FROM empleados e1
+WHERE salario > (
+    SELECT AVG(salario)
+    FROM empleados e2
+    WHERE e2.departamento_id = e1.departamento_id
+);
+
+CTEs (Common Table Expressions)
+sql
+
+-- Con WITH
+WITH 
+ventas_por_empleado AS (
+    SELECT 
+        empleado_id,
+        SUM(total) AS ventas_totales
+    FROM pedidos
+    WHERE fecha >= '2024-01-01'
+    GROUP BY empleado_id
+),
+promedio_ventas AS (
+    SELECT AVG(ventas_totales) AS promedio
+    FROM ventas_por_empleado
+)
+SELECT 
+    e.nombre,
+    e.apellido,
+    v.ventas_totales,
+    CASE 
+        WHEN v.ventas_totales > p.promedio THEN 'Sí'
+        ELSE 'No'
+    END AS supera_promedio
+FROM empleados e
+JOIN ventas_por_empleado v ON e.id = v.empleado_id
+CROSS JOIN promedio_ventas p
+ORDER BY v.ventas_totales DESC;
+
+5. JOINS Y RELACIONES
+INNER JOIN
+sql
+
+-- Relacionar empleados con departamentos
+SELECT 
+    e.nombre,
+    e.apellido,
+    d.nombre AS departamento,
+    d.ubicacion
+FROM empleados e
+INNER JOIN departamentos d ON e.departamento_id = d.id;
+
+-- Múltiples JOINs
+SELECT 
+    p.nombre AS producto,
+    c.nombre AS categoria,
+    s.nombre AS proveedor,
+    p.precio
+FROM productos p
+INNER JOIN categorias c ON p.categoria_id = c.id
+INNER JOIN proveedores s ON p.proveedor_id = s.id;
+
+LEFT JOIN (Incluye todos los de la izquierda)
+sql
+
+-- Todos los empleados, incluso los sin departamento
+SELECT 
+    e.nombre,
+    e.apellido,
+    COALESCE(d.nombre, 'Sin departamento') AS departamento
+FROM empleados e
+LEFT JOIN departamentos d ON e.departamento_id = d.id;
+
+-- Clientes y sus pedidos (incluye clientes sin pedidos)
+SELECT 
+    c.nombre AS cliente,
+    COUNT(p.id) AS total_pedidos,
+    SUM(COALESCE(p.total, 0)) AS total_gastado
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+GROUP BY c.id, c.nombre;
+
+RIGHT JOIN (Incluye todos los de la derecha)
+sql
+
+-- Todos los departamentos, incluso los sin empleados
+SELECT 
+    d.nombre AS departamento,
+    COUNT(e.id) AS num_empleados
+FROM empleados e
+RIGHT JOIN departamentos d ON e.departamento_id = d.id
+GROUP BY d.id, d.nombre;
+
+FULL OUTER JOIN (Todos de ambas tablas)
+sql
+
+-- Unión completa de empleados y clientes por email
+SELECT 
+    COALESCE(e.nombre, c.nombre) AS nombre,
+    COALESCE(e.email, c.email) AS email,
+    CASE 
+        WHEN e.id IS NOT NULL AND c.id IS NOT NULL THEN 'Ambos'
+        WHEN e.id IS NOT NULL THEN 'Empleado'
+        WHEN c.id IS NOT NULL THEN 'Cliente'
+    END AS tipo
+FROM empleados e
+FULL OUTER JOIN clientes c ON e.email = c.email;
+
+CROSS JOIN (Producto cartesiano)
+sql
+
+-- Combinar todos los colores con todas las tallas
+SELECT 
+    c.color,
+    t.talla,
+    c.precio_base * t.multiplicador AS precio_final
+FROM colores c
+CROSS JOIN tallas t;
+
+-- Generar serie de fechas
+SELECT 
+    fecha::date,
+    EXTRACT(DOW FROM fecha) AS dia_semana
+FROM generate_series(
+    '2024-01-01'::timestamp,
+    '2024-12-31'::timestamp,
+    '1 day'::interval
+) AS fecha;
+
+SELF JOIN (Auto-join)
+sql
+
+-- Jerarquía de empleados (jefes y subordinados)
+SELECT 
+    e.nombre AS empleado,
+    e.puesto,
+    j.nombre AS jefe,
+    j.puesto AS puesto_jefe
+FROM empleados e
+LEFT JOIN empleados j ON e.jefe_id = j.id;
+
+-- Encontrar duplicados
+SELECT a.*
+FROM clientes a
+JOIN clientes b ON a.email = b.email 
+    AND a.id < b.id  -- Evita duplicar comparaciones
+WHERE a.email IS NOT NULL;
+
+6. EXPRESIONES AVANZADAS
+Window Functions
+sql
+
+-- ROW_NUMBER, RANK, DENSE_RANK
+SELECT 
+    nombre,
+    departamento,
+    salario,
+    ROW_NUMBER() OVER (ORDER BY salario DESC) AS ranking_general,
+    ROW_NUMBER() OVER (PARTITION BY departamento ORDER BY salario DESC) AS ranking_departamento,
+    RANK() OVER (ORDER BY salario DESC) AS rank_salarial,
+    DENSE_RANK() OVER (ORDER BY salario DESC) AS dense_rank_salarial
+FROM empleados;
+
+-- LAG y LEAD (valores anteriores y siguientes)
+SELECT 
+    fecha,
+    ventas,
+    LAG(ventas) OVER (ORDER BY fecha) AS ventas_dia_anterior,
+    LEAD(ventas) OVER (ORDER BY fecha) AS ventas_dia_siguiente,
+    ventas - LAG(ventas) OVER (ORDER BY fecha) AS diferencia_diaria
+FROM ventas_diarias;
+
+-- Funciones de agregación con OVER
+SELECT 
+    nombre,
+    departamento,
+    salario,
+    AVG(salario) OVER (PARTITION BY departamento) AS promedio_departamento,
+    SUM(salario) OVER (PARTITION BY departamento) AS total_departamento,
+    salario / AVG(salario) OVER (PARTITION BY departamento) * 100 AS porcentaje_promedio
+FROM empleados;
+
+-- NTILE (dividir en grupos)
+SELECT 
+    nombre,
+    salario,
+    NTILE(4) OVER (ORDER BY salario DESC) AS cuartil,
+    CASE NTILE(4) OVER (ORDER BY salario DESC)
+        WHEN 1 THEN 'Alto'
+        WHEN 2 THEN 'Medio-Alto'
+        WHEN 3 THEN 'Medio-Bajo'
+        WHEN 4 THEN 'Bajo'
+    END AS categoria_salarial
+FROM empleados;
+
+Expresiones Regulares
+sql
+
+-- ~ (coincidencia regex)
+SELECT * FROM clientes WHERE nombre ~ '^Mar[ií]a';  -- Empieza con Maria o María
+
+-- ~* (case-insensitive)
+SELECT * FROM productos WHERE descripcion ~* 'port[aá]til|laptop';
+
+-- !~ (no coincide)
+SELECT * FROM usuarios WHERE email !~ '@gmail\.com$';
+
+-- regexp_replace
+SELECT 
+    telefono,
+    regexp_replace(telefono, '\D', '', 'g') AS solo_numeros
+FROM contactos;
+
+Expresiones JSON
+sql
+
+-- Extraer datos JSON
+SELECT 
+    datos->>'nombre' AS nombre,
+    datos->>'email' AS email,
+    datos->'direccion'->>'ciudad' AS ciudad,
+    datos->'preferencias'->>'tema' AS tema_preferido
+FROM usuarios_json;
+
+-- Filtrar por contenido JSON
+SELECT * FROM productos 
+WHERE caracteristicas @> '{"color": "rojo"}'::jsonb;
+
+SELECT * FROM pedidos 
+WHERE datos_jsonb->'items' @> '[{"producto": "Laptop"}]';
+
+7. OPTIMIZACIÓN
+Uso de EXPLAIN y ANALYZE
+sql
+
+-- Ver plan de ejecución
+EXPLAIN SELECT * FROM productos WHERE precio > 100;
+
+-- Con análisis de tiempo real
+EXPLAIN ANALYZE 
+SELECT * FROM pedidos 
+WHERE fecha BETWEEN '2024-01-01' AND '2024-12-31';
+
+-- Con formato detallado
+EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+SELECT c.nombre, COUNT(p.id) 
+FROM clientes c 
+JOIN pedidos p ON c.id = p.cliente_id 
+GROUP BY c.id;
+
+Buenas Prácticas
+sql
+
+-- ❌ MAL - Selección innecesaria
+SELECT * FROM usuarios WHERE id = 1;
+
+-- ✅ BIEN - Solo columnas necesarias
+SELECT nombre, email FROM usuarios WHERE id = 1;
+
+-- ❌ MAL - Función en WHERE (no usa índice)
+SELECT * FROM productos WHERE LOWER(nombre) = 'laptop';
+
+-- ✅ BIEN - Usar índice
+SELECT * FROM productos WHERE nombre ILIKE 'laptop';
+
+-- ❌ MAL - Subconsulta en SELECT (se ejecuta por cada fila)
+SELECT 
+    nombre,
+    (SELECT COUNT(*) FROM pedidos WHERE cliente_id = c.id) 
+FROM clientes c;
+
+-- ✅ BIEN - Usar JOIN
+SELECT 
+    c.nombre,
+    COUNT(p.id)
+FROM clientes c
+LEFT JOIN pedidos p ON c.id = p.cliente_id
+GROUP BY c.id;
+
+-- ❌ MAL - OFFSET grande
+SELECT * FROM logs ORDER BY fecha LIMIT 10 OFFSET 1000000;
+
+-- ✅ BIEN - Keyset pagination
+SELECT * FROM logs 
+WHERE fecha < '2024-06-01'
+ORDER BY fecha DESC 
+LIMIT 10;
+
+Índices para Optimizar SELECT
+sql
+
+-- Crear índices según consultas frecuentes
+CREATE INDEX idx_productos_precio ON productos(precio);
+CREATE INDEX idx_empleados_departamento ON empleados(departamento_id);
+CREATE INDEX idx_pedidos_fecha_cliente ON pedidos(fecha, cliente_id);
+CREATE INDEX idx_clientes_email ON clientes USING hash(email);
+CREATE INDEX idx_productos_nombre ON productos USING gin(to_tsvector('spanish', nombre));
+
+8. EJEMPLOS PRÁCTICOS COMPLETOS
+Ejemplo 1: Sistema de Ventas
+sql
+
+-- Análisis de ventas mensuales
+SELECT 
+    TO_CHAR(fecha, 'YYYY-MM') AS mes,
+    EXTRACT(YEAR FROM fecha) AS año,
+    EXTRACT(MONTH FROM fecha) AS mes_numero,
+    COUNT(DISTINCT cliente_id) AS clientes_unicos,
+    COUNT(*) AS total_pedidos,
+    SUM(total) AS ventas_totales,
+    AVG(total) AS ticket_promedio,
+    SUM(total) / COUNT(DISTINCT cliente_id) AS venta_por_cliente,
+    LAG(SUM(total)) OVER (ORDER BY TO_CHAR(fecha, 'YYYY-MM')) AS ventas_mes_anterior,
+    SUM(total) - LAG(SUM(total)) OVER (ORDER BY TO_CHAR(fecha, 'YYYY-MM')) AS crecimiento
+FROM pedidos
+WHERE fecha >= '2023-01-01'
+GROUP BY TO_CHAR(fecha, 'YYYY-MM'), EXTRACT(YEAR FROM fecha), EXTRACT(MONTH FROM fecha)
+ORDER BY año, mes_numero;
+
+Ejemplo 2: Sistema de RRHH
+sql
+
+-- Análisis salarial por departamento
+WITH salarios_departamento AS (
+    SELECT 
+        d.nombre AS departamento,
+        COUNT(e.id) AS num_empleados,
+        ROUND(AVG(e.salario), 2) AS salario_promedio,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY e.salario) AS mediana,
+        MIN(e.salario) AS salario_minimo,
+        MAX(e.salario) AS salario_maximo,
+        ROUND(STDDEV(e.salario), 2) AS desviacion_estandar
+    FROM empleados e
+    INNER JOIN departamentos d ON e.departamento_id = d.id
+    WHERE e.activo = true
+    GROUP BY d.id, d.nombre
+),
+salario_general AS (
+    SELECT 
+        ROUND(AVG(salario), 2) AS promedio_general,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY salario) AS mediana_general
+    FROM empleados
+    WHERE activo = true
+)
+SELECT 
+    sd.*,
+    sg.promedio_general,
+    sg.mediana_general,
+    CASE 
+        WHEN sd.salario_promedio > sg.promedio_general THEN 'Sobre promedio'
+        ELSE 'Bajo promedio'
+    END AS comparativa
+FROM salarios_departamento sd
+CROSS JOIN salario_general sg
+ORDER BY sd.salario_promedio DESC;
+
+Ejemplo 3: Sistema de Inventario
+sql
+
+-- Análisis de stock y rotación
+WITH movimientos_mensuales AS (
+    SELECT 
+        p.id AS producto_id,
+        p.nombre AS producto,
+        c.nombre AS categoria,
+        TO_CHAR(m.fecha, 'YYYY-MM') AS mes,
+        SUM(CASE WHEN m.tipo = 'entrada' THEN m.cantidad ELSE 0 END) AS entradas,
+        SUM(CASE WHEN m.tipo = 'salida' THEN m.cantidad ELSE 0 END) AS salidas,
+        SUM(CASE WHEN m.tipo = 'entrada' THEN m.cantidad ELSE -m.cantidad END) AS neto
+    FROM productos p
+    LEFT JOIN categorias c ON p.categoria_id = c.id
+    LEFT JOIN movimientos_inventario m ON p.id = m.producto_id
+    WHERE m.fecha >= CURRENT_DATE - INTERVAL '12 months'
+    GROUP BY p.id, p.nombre, c.nombre, TO_CHAR(m.fecha, 'YYYY-MM')
+),
+stock_actual AS (
+    SELECT 
+        p.id,
+        p.nombre,
+        COALESCE(SUM(
+            CASE 
+                WHEN m.tipo = 'entrada' THEN m.cantidad
+                WHEN m.tipo = 'salida' THEN -m.cantidad
+            END
+        ), 0) AS stock
+    FROM productos p
+    LEFT JOIN movimientos_inventario m ON p.id = m.producto_id
+    GROUP BY p.id, p.nombre
+)
+SELECT 
+    mm.producto,
+    mm.categoria,
+    mm.mes,
+    mm.entradas,
+    mm.salidas,
+    mm.neto,
+    sa.stock AS stock_actual,
+    ROUND(mm.salidas / NULLIF(sa.stock, 0) * 100, 2) AS porcentaje_rotacion,
+    CASE 
+        WHEN sa.stock = 0 THEN 'Agotado'
+        WHEN sa.stock < p.stock_minimo THEN 'Bajo stock'
+        WHEN sa.stock > p.stock_maximo THEN 'Exceso'
+        ELSE 'Normal'
+    END AS estado_inventario
+FROM movimientos_mensuales mm
+INNER JOIN productos p ON mm.producto_id = p.id
+INNER JOIN stock_actual sa ON mm.producto_id = sa.id
+ORDER BY mm.mes DESC, mm.salidas DESC;
+
+Ejemplo 4: Sistema de Logs y Monitoreo
+sql
+
+-- Análisis de errores por hora
+SELECT 
+    DATE_TRUNC('hour', timestamp) AS hora,
+    COUNT(*) AS total_errores,
+    COUNT(DISTINCT usuario_id) AS usuarios_afectados,
+    COUNT(CASE WHEN nivel = 'ERROR' THEN 1 END) AS errores_criticos,
+    COUNT(CASE WHEN nivel = 'WARNING' THEN 1 END) AS advertencias,
+    STRING_AGG(DISTINCT modulo, ', ') AS modulos_afectados,
+    MAX(CASE 
+        WHEN mensaje LIKE '%timeout%' THEN 'Timeout'
+        WHEN mensaje LIKE '%connection%' THEN 'Conexión'
+        WHEN mensaje LIKE '%memory%' THEN 'Memoria'
+        ELSE 'Otro'
+    END) AS tipo_error_principal
+FROM logs
+WHERE timestamp >= CURRENT_DATE - INTERVAL '7 days'
+    AND nivel IN ('ERROR', 'WARNING')
+GROUP BY DATE_TRUNC('hour', timestamp)
+HAVING COUNT(*) > 5  -- Solo horas con más de 5 errores
+ORDER BY total_errores DESC;
+
+PRÁCTICA CON PYTHON
+python
+
+import psycopg2
+import pandas as pd
+from typing import List, Dict, Any
+
+class PostgreSQLQueryExpert:
+    def __init__(self, connection_params):
+        self.conn = psycopg2.connect(**connection_params)
+        
+    def execute_query(self, query: str, params: tuple = None) -> List[Dict]:
+        """Ejecuta una consulta y devuelve resultados como diccionarios"""
+        with self.conn.cursor() as cursor:
+            cursor.execute(query, params or ())
+            
+            # Obtener nombres de columnas
+            column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+            
+            # Convertir a lista de diccionarios
+            results = []
+            for row in cursor.fetchall():
+                results.append(dict(zip(column_names, row)))
+            
+            return results
+    
+    def explain_query(self, query: str, params: tuple = None) -> str:
+        """Analiza el plan de ejecución de una consulta"""
+        explain_query = f"EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) {query}"
+        
+        with self.conn.cursor() as cursor:
+            cursor.execute(explain_query, params or ())
+            return "\n".join([row[0] for row in cursor.fetchall()])
+    
+    def paginated_query(self, query: str, page: int = 1, page_size: int = 50, **filters) -> Dict:
+        """Consulta paginada con filtros dinámicos"""
+        # Construir WHERE dinámico
+        where_clauses = []
+        params = []
+        
+        for key, value in filters.items():
+            if value is not None:
+                where_clauses.append(f"{key} = %s")
+                params.append(value)
+        
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+        
+        # Consulta paginada
+        offset = (page - 1) * page_size
+        
+        count_query = f"""
+        SELECT COUNT(*) 
+        FROM ({query}) AS subquery
+        WHERE {where_sql}
+        """
+        
+        data_query = f"""
+        SELECT * 
+        FROM ({query}) AS subquery
+        WHERE {where_sql}
+        LIMIT %s OFFSET %s
+        """
+        
+        params.extend([page_size, offset])
+        
+        with self.conn.cursor() as cursor:
+            # Obtener total
+            cursor.execute(count_query, params[:-2])  # Excluir LIMIT y OFFSET
+            total = cursor.fetchone()[0]
+            
+            # Obtener datos
+            cursor.execute(data_query, params)
+            rows = cursor.fetchall()
+            column_names = [desc[0] for desc in cursor.description]
+            
+            data = [dict(zip(column_names, row)) for row in rows]
+            
+            return {
+                'page': page,
+                'page_size': page_size,
+                'total': total,
+                'total_pages': (total + page_size - 1) // page_size,
+                'data': data
+            }
+    
+    def analytics_dashboard(self) -> Dict[str, Any]:
+        """Genera métricas para dashboard"""
+        queries = {
+            'ventas_diarias': """
+                SELECT 
+                    DATE(fecha) as dia,
+                    COUNT(*) as pedidos,
+                    SUM(total) as ventas,
+                    AVG(total) as ticket_promedio
+                FROM pedidos
+                WHERE fecha >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY DATE(fecha)
+                ORDER BY dia DESC
+            """,
+            
+            'top_clientes': """
+                SELECT 
+                    c.nombre,
+                    COUNT(p.id) as pedidos,
+                    SUM(p.total) as total_gastado,
+                    MAX(p.fecha) as ultima_compra
+                FROM clientes c
+                JOIN pedidos p ON c.id = p.cliente_id
+                WHERE p.fecha >= CURRENT_DATE - INTERVAL '90 days'
+                GROUP BY c.id
+                ORDER BY total_gastado DESC
+                LIMIT 10
+            """,
+            
+            'productos_mas_vendidos': """
+                SELECT 
+                    pr.nombre,
+                    SUM(d.cantidad) as unidades_vendidas,
+                    SUM(d.cantidad * d.precio_unitario) as ventas_totales,
+                    COUNT(DISTINCT p.id) as pedidos_con_producto
+                FROM productos pr
+                JOIN detalles_pedido d ON pr.id = d.producto_id
+                JOIN pedidos p ON d.pedido_id = p.id
+                WHERE p.fecha >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY pr.id
+                ORDER BY unidades_vendidas DESC
+                LIMIT 15
+            """,
+            
+            'tendencias_mensuales': """
+                SELECT 
+                    TO_CHAR(fecha, 'YYYY-MM') as mes,
+                    COUNT(*) as pedidos,
+                    SUM(total) as ventas,
+                    COUNT(DISTINCT cliente_id) as clientes_unicos
+                FROM pedidos
+                WHERE fecha >= CURRENT_DATE - INTERVAL '12 months'
+                GROUP BY TO_CHAR(fecha, 'YYYY-MM')
+                ORDER BY mes DESC
+            """
+        }
+        
+        results = {}
+        for name, query in queries.items():
+            results[name] = self.execute_query(query)
+        
+        return results
+
+# Uso del sistema
+if __name__ == "__main__":
+    db_config = {
+        'dbname': 'ventas_db',
+        'user': 'admin',
+        'password': 'password',
+        'host': 'localhost'
+    }
+    
+    expert = PostgreSQLQueryExpert(db_config)
+    
+    # Consulta compleja con múltiples JOINs
+    query = """
+    SELECT 
+        c.nombre as cliente,
+        c.email,
+        COUNT(p.id) as total_pedidos,
+        SUM(p.total) as gasto_total,
+        MAX(p.fecha) as ultima_compra,
+        AVG(p.total) as ticket_promedio,
+        STRING_AGG(DISTINCT pr.nombre, ', ') as productos_comprados
+    FROM clientes c
+    LEFT JOIN pedidos p ON c.id = p.cliente_id
+    LEFT JOIN detalles_pedido dp ON p.id = dp.pedido_id
+    LEFT JOIN productos pr ON dp.producto_id = pr.id
+    GROUP BY c.id
+    HAVING COUNT(p.id) > 0
+    ORDER BY gasto_total DESC
+    """
+    
+    # Ejecutar consulta
+    results = expert.execute_query(query)
+    print(f"Total clientes con compras: {len(results)}")
+    
+    # Análisis del plan de ejecución
+    explain_plan = expert.explain_query(query)
+    print("\nPlan de ejecución:")
+    print(explain_plan)
+    
+    # Consulta paginada
+    paginated = expert.paginated_query(
+        "SELECT * FROM productos",
+        page=2,
+        page_size=20,
+        categoria_id=1,
+        disponible=True
+    )
+    print(f"\nPágina {paginated['page']} de {paginated['total_pages']}")
+    
+    # Dashboard analytics
+    dashboard = expert.analytics_dashboard()
+    print(f"\nVentas últimos 30 días: {len(dashboard['ventas_diarias'])} registros")
+    
+    expert.conn.close()
+
+EJERCICIOS PRÁCTICOS
+Nivel Básico:
+
+    Consulta de productos: Selecciona todos los productos con precio mayor a 50, ordenados por precio descendente
+
+    Clientes por ciudad: Agrupa clientes por ciudad y cuenta cuántos hay en cada una
+
+    Pedidos recientes: Muestra los últimos 10 pedidos con información del cliente
+
+Nivel Intermedio:
+
+    Análisis de ventas: Calcula ventas mensuales con crecimiento respecto al mes anterior
+
+    Productos más rentables: Encuentra los 10 productos con mayor margen de ganancia
+
+    Clientes inactivos: Identifica clientes que no han comprado en los últimos 90 días
+
+Nivel Avanzado:
+
+    Análisis de cohortes: Calcula retención de clientes por mes desde su primera compra
+
+    Recomendación de productos: Basado en compras previas, sugiere productos relacionados
+
+    Detección de anomalías: Identifica transacciones sospechosas usando desviación estándar
+
+RECURSOS Y CONSEJOS FINALES
+Consejos de Rendimiento:
+
+    Usa EXPLAIN ANALYZE siempre para consultas complejas
+
+    Indexa columnas usadas en WHERE, JOIN y ORDER BY
+
+    Limita el uso de SELECT * - especifica solo las columnas necesarias
+
+    Evita funciones en WHERE que impidan el uso de índices
+
+    Usa UNION ALL en lugar de UNION cuando no necesites eliminar duplicados
+
+Errores Comunes:
+sql
+
+-- ❌ N+1 query problem
+SELECT * FROM clientes;
+-- Luego para cada cliente: SELECT * FROM pedidos WHERE cliente_id = ?
+
+-- ✅ Solución con JOIN
+SELECT c.*, p.* 
+FROM clientes c 
+LEFT JOIN pedidos p ON c.id = p.cliente_id;
+
+-- ❌ ORDER BY aleatorio costoso
+SELECT * FROM productos ORDER BY RANDOM() LIMIT 10;
+
+-- ✅ Solución más eficiente
+SELECT * FROM productos 
+WHERE id IN (
+    SELECT id FROM productos 
+    ORDER BY RANDOM() 
+    LIMIT 10
+);

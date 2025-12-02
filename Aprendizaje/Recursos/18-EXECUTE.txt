@@ -1,0 +1,2150 @@
+⚡ EXECUTE en PostgreSQL: Guía Completa
+
+El comando EXECUTE en PostgreSQL tiene dos contextos principales: ejecución dinámica de SQL en PL/pgSQL y ejecución de prepared statements . Vamos a explorar ambos en profundidad.
+ÍNDICE
+
+    EXECUTE en PL/pgSQL
+
+    Declaraciones preparadas
+
+    EXECUTE con Parámetros
+
+    Seguridad y SQL Injection
+
+    Performance y Optimización
+
+    Ejemplos Avanzados
+
+    Buenas Prácticas
+
+    Ejemplos con Python 
+
+1. EJECUTAR EN PL/pgSQL
+Concepto Básico
+
+En PL/pgSQL, ` EXECUTE se utiliza para ejecutar comandos SQL dinámicos generados como strings. Esto es útil cuando:
+
+    No conoces la consulta completa en tiempo de compilación
+
+    Necesitas construir consultas basadas en parámetros variables
+
+    Quieres evitar la planificación repetida de consultas similares 
+
+Sintaxis Básica
+SQL
+
+-- Sintaxis básica 
+EXECUTE  cadena_sql  [  INTO  [ STRICT ]  destino  ]  [  USING  expresión  [ ,  . . . ]  ] ; 
+
+-- Ejemplo simple 
+EXECUTE  'SELECT * FROM usuarios WHERE id = 1' ; 
+
+-- Con INTO para capturar resultados 
+EXECUTE  'SELECT COUNT(*) FROM usuarios'  INTO  total_usuarios ; 
+
+Diferencia entre SQL Directo y EXECUTE
+SQL
+
+-- ❌ Esto NO funciona en PL/pgSQL
+DECLARE
+    tabla_nombre TEXT := 'usuarios';
+BEGIN
+    SELECT * FROM tabla_nombre;  -- ERROR: tabla_nombre no existe
+END;
+
+-- ✅ Esto SÍ funciona usando EXECUTE
+DECLARE
+    tabla_nombre TEXT := 'usuarios';
+    fila RECORD;
+BEGIN
+    EXECUTE 'SELECT * FROM ' || quote_ident(tabla_nombre) INTO fila;
+END;
+
+Ejemplos Fundamentales
+SQL
+
+-- 1. Ejecutar DDL dinámico
+CREATE OR REPLACE FUNCTION crear_tabla_dinamica(nombre_tabla TEXT)
+RETURNS void AS $$
+BEGIN
+    EXECUTE format('
+        CREATE TABLE %I (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )', nombre_tabla);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Ejecutar DML dinámico
+CREATE OR REPLACE FUNCTION eliminar_por_filtro(
+    tabla_nombre TEXT,
+    columna_filtro TEXT,
+    valor_filtro TEXT
+)
+RETURNS INTEGER AS $$
+DECLARE
+    filas_eliminadas INTEGER;
+BEGIN
+    EXECUTE format('
+        DELETE FROM %I WHERE %I = $1',
+        tabla_nombre, columna_filtro)
+    USING valor_filtro;
+    
+    GET DIAGNOSTICS filas_eliminadas = ROW_COUNT;
+    RETURN filas_eliminadas;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Construir consultas complejas dinámicamente
+CREATE OR REPLACE FUNCTION buscar_datos(
+    tabla TEXT,
+    condiciones TEXT[] DEFAULT NULL,
+    ordenamiento TEXT DEFAULT 'id',
+    limite INT DEFAULT 100
+)
+RETURNS SETOF JSON AS $$
+DECLARE
+    consulta TEXT;
+    condicion TEXT;
+    resultado JSON;
+BEGIN
+    -- Construir consulta base
+    consulta := format('SELECT row_to_json(t) FROM %I t', tabla);
+    
+    -- Agregar condiciones si existen
+    IF condiciones IS NOT NULL AND array_length(condiciones, 1) > 0 THEN
+        consulta := consulta || ' WHERE ' || array_to_string(condiciones, ' AND ');
+    END IF;
+    
+    -- Agregar ordenamiento y límite
+    consulta := consulta || format(' ORDER BY %I', ordenamiento);
+    consulta := consulta || format(' LIMIT %s', limite);
+    
+    -- Ejecutar y retornar resultados
+    FOR resultado IN EXECUTE consulta
+    LOOP
+        RETURN NEXT resultado;
+    END LOOP;
+    
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+2. ESTADOS PREPARADOS
+¿Qué son los Prepared Statements?
+
+Los prepared statements son plantillas de consultas SQL que se preparan una vez y se ejecutan múltiples veces con diferentes parámetros. PostgreSQL optimiza esto:
+
+    Parseo : Analiza la sintaxis SQL
+
+    Planificación : Crea un plan de ejecución óptimo
+
+    Ejecución : Ejecuta el plan con parámetros específicos 
+
+Sintaxis de Prepared Statements
+SQL
+
+-- 1. PREPARE - Crear un prepared statement
+PREPARE nombre_statement (tipo1, tipo2, ...) AS
+    consulta_sql;
+
+-- 2. EXECUTE - Ejecutar el prepared statement
+EXECUTE nombre_statement (valor1, valor2, ...);
+
+-- 3. DEALLOCATE - Eliminar el prepared statement
+DEALLOCATE nombre_statement;
+-- o
+DEALLOCATE PREPARE nombre_statement;
+
+Ejemplos de Prepared Statements
+sql
+
+-- Ejemplo 1: Prepared statement simple
+PREPARE buscar_usuario (INT) AS
+    SELECT * FROM usuarios WHERE id = $1;
+
+-- Ejecutar múltiples veces
+EXECUTE buscar_usuario (1);
+EXECUTE buscar_usuario (2);
+EXECUTE buscar_usuario (3);
+
+-- Limpiar
+DEALLOCATE buscar_usuario;
+
+-- Ejemplo 2: Prepared statement con múltiples parámetros
+PREPARE insertar_producto (TEXT, DECIMAL, INT) AS
+    INSERT INTO productos (nombre, precio, stock)
+    VALUES ($1, $2, $3)
+    RETURNING id;
+
+-- Ejecutar
+EXECUTE insertar_producto ('Laptop', 999.99, 10);
+EXECUTE insertar_producto ('Mouse', 29.99, 50);
+
+-- Ejemplo 3: Prepared statement para consultas complejas
+PREPARE obtener_ventas_por_periodo (DATE, DATE) AS
+    SELECT 
+        DATE_TRUNC('day', fecha) as dia,
+        COUNT(*) as ventas,
+        SUM(total) as ingreso_total
+    FROM ventas
+    WHERE fecha BETWEEN $1 AND $2
+    GROUP BY dia
+    ORDER BY dia;
+
+-- Ejecutar para diferentes periodos
+EXECUTE obtener_ventas_por_periodo ('2024-01-01', '2024-01-31');
+EXECUTE obtener_ventas_por_periodo ('2024-02-01', '2024-02-29');
+
+-- Ver prepared statements activos
+SELECT * FROM pg_prepared_statements;
+
+Vida Útil de Prepared Statements
+sql
+
+-- Los prepared statements existen durante la sesión actual
+-- Se eliminan automáticamente cuando la conexión termina
+
+-- Puedes tener límites de memoria
+SHOW max_prepared_transactions;  -- Default: 0 (deshabilitado)
+
+-- Para habilitar, en postgresql.conf:
+-- max_prepared_transactions = 100
+
+-- Revisar prepared statements existentes
+SELECT 
+    name,
+    statement,
+    prepare_time,
+    parameter_types,
+    from_sql
+FROM pg_prepared_statements;
+
+3. EXECUTE CON PARÁMETROS
+USING Clause en EXECUTE
+
+La cláusula USING permite pasar parámetros a EXECUTE de forma segura, evitando SQL injection.
+sql
+
+-- ❌ PELIGROSO: Concatenación directa (SQL Injection)
+EXECUTE 'SELECT * FROM usuarios WHERE nombre = ''' || nombre_usuario || '''';
+
+-- ✅ SEGURO: Usando USING
+EXECUTE 'SELECT * FROM usuarios WHERE nombre = $1' 
+USING nombre_usuario;
+
+Ejemplos con Parámetros
+sql
+
+-- 1. Parámetros simples
+CREATE OR REPLACE FUNCTION obtener_usuario_por_email(email_busqueda TEXT)
+RETURNS SETOF usuarios AS $$
+DECLARE
+    usuario_record usuarios%ROWTYPE;
+BEGIN
+    EXECUTE 'SELECT * FROM usuarios WHERE email = $1'
+    INTO usuario_record
+    USING email_busqueda;
+    
+    RETURN NEXT usuario_record;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Múltiples parámetros
+CREATE OR REPLACE FUNCTION actualizar_precio_producto(
+    producto_id INT,
+    nuevo_precio DECIMAL,
+    usuario_modificacion TEXT
+)
+RETURNS VOID AS $$
+BEGIN
+    EXECUTE '
+        UPDATE productos 
+        SET 
+            precio = $1,
+            fecha_actualizacion = CURRENT_TIMESTAMP,
+            actualizado_por = $2
+        WHERE id = $3'
+    USING nuevo_precio, usuario_modificacion, producto_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Parámetros dinámicos en condiciones
+CREATE OR REPLACE FUNCTION filtrar_usuarios(
+    condiciones TEXT,
+    valores ANYARRAY
+)
+RETURNS SETOF usuarios AS $$
+DECLARE
+    consulta TEXT;
+    i INT;
+BEGIN
+    -- Construir consulta base
+    consulta := 'SELECT * FROM usuarios';
+    
+    -- Agregar WHERE si hay condiciones
+    IF condiciones IS NOT NULL AND condiciones != '' THEN
+        consulta := consulta || ' WHERE ' || condiciones;
+    END IF;
+    
+    -- Reemplazar ? por $1, $2, etc.
+    FOR i IN 1..array_length(valores, 1) LOOP
+        consulta := replace(consulta, '?', '$' || i);
+    END LOOP;
+    
+    -- Ejecutar con parámetros
+    RETURN QUERY EXECUTE consulta USING valores;
+END;
+$$ LANGUAGE plpgsql;
+
+Parámetros con Tipos de Datos Especiales
+sql
+
+-- 1. Parámetros JSON/JSONB
+CREATE OR REPLACE FUNCTION buscar_por_filtros_json(filtros JSONB)
+RETURNS SETOF productos AS $$
+DECLARE
+    consulta TEXT;
+    clave TEXT;
+    valor TEXT;
+    condiciones TEXT[] := '{}';
+BEGIN
+    -- Construir condiciones dinámicamente desde JSON
+    FOR clave, valor IN 
+        SELECT * FROM jsonb_each_text(filtros)
+    LOOP
+        condiciones := array_append(
+            condiciones, 
+            format('%I = $%s', clave, array_length(condiciones, 1) + 1)
+        );
+    END LOOP;
+    
+    -- Construir consulta
+    consulta := 'SELECT * FROM productos';
+    IF array_length(condiciones, 1) > 0 THEN
+        consulta := consulta || ' WHERE ' || array_to_string(condiciones, ' AND ');
+    END IF;
+    
+    -- Extraer valores para USING
+    RETURN QUERY EXECUTE consulta 
+    USING (SELECT array_agg(value) FROM jsonb_each_text(filtros));
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Parámetros con arrays
+CREATE OR REPLACE FUNCTION buscar_usuarios_por_ids(ids INT[])
+RETURNS SETOF usuarios AS $$
+BEGIN
+    RETURN QUERY EXECUTE '
+        SELECT * FROM usuarios 
+        WHERE id = ANY($1)
+        ORDER BY id'
+    USING ids;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Parámetros con tipos compuestos
+CREATE OR REPLACE FUNCTION insertar_direccion(direccion direcciones)
+RETURNS INT AS $$
+DECLARE
+    nuevo_id INT;
+BEGIN
+    EXECUTE '
+        INSERT INTO direcciones 
+        (calle, ciudad, codigo_postal, pais)
+        VALUES ($1.calle, $1.ciudad, $1.codigo_postal, $1.pais)
+        RETURNING id'
+    INTO nuevo_id
+    USING direccion;
+    
+    RETURN nuevo_id;
+END;
+$$ LANGUAGE plpgsql;
+
+4. SEGURIDAD Y SQL INJECTION
+Riesgos de Seguridad
+sql
+
+-- ❌ EJEMPLO DE SQL INJECTION
+CREATE OR REPLACE FUNCTION buscar_usuario_inseguro(nombre TEXT)
+RETURNS SETOF usuarios AS $$
+BEGIN
+    -- ¡PELIGRO! SQL Injection posible
+    RETURN QUERY EXECUTE 
+        'SELECT * FROM usuarios WHERE nombre = ''' || nombre || '''';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Si nombre = "'; DROP TABLE usuarios; --"
+-- La consulta se convierte en:
+-- SELECT * FROM usuarios WHERE nombre = ''; DROP TABLE usuarios; --'
+
+Funciones de Seguridad en PostgreSQL
+sql
+
+-- 1. quote_ident() - Para identificadores (nombres de tablas/columnas)
+SELECT quote_ident('user table');  -- Result: "user table"
+SELECT quote_ident('users');       -- Result: users
+
+-- 2. quote_literal() - Para valores literales
+SELECT quote_literal('O''Reilly');  -- Result: 'O''Reilly'
+SELECT quote_literal(E'\xDEADBEEF'); -- Result: E'\\xDEADBEEF'
+
+-- 3. quote_nullable() - Para valores que pueden ser NULL
+SELECT quote_nullable(NULL);  -- Result: NULL
+SELECT quote_nullable('text'); -- Result: 'text'
+
+-- 4. format() - Formateo seguro con placeholders
+-- Placeholders:
+-- %I = quote_ident (identificador)
+-- %L = quote_literal (literal)
+-- %s = valor sin quotes (para USING)
+-- %% = carácter %
+
+SELECT format('SELECT * FROM %I WHERE %I = %L', 
+              'user table', 'name', 'John'); 
+-- Result: SELECT * FROM "user table" WHERE "name" = 'John'
+
+Ejemplos Seguros
+sql
+
+-- 1. Función segura con format()
+CREATE OR REPLACE FUNCTION buscar_usuario_seguro(
+    tabla_nombre TEXT,
+    columna_nombre TEXT,
+    valor_busqueda TEXT
+)
+RETURNS SETOF RECORD AS $$
+DECLARE
+    resultado RECORD;
+BEGIN
+    FOR resultado IN EXECUTE format(
+        'SELECT * FROM %I WHERE %I = $1',
+        tabla_nombre,
+        columna_nombre
+    ) USING valor_busqueda
+    LOOP
+        RETURN NEXT resultado;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Función segura con validación
+CREATE OR REPLACE FUNCTION ejecutar_consulta_segura(
+    consulta_template TEXT,
+    parametros JSONB DEFAULT '{}'
+)
+RETURNS SETOF JSON AS $$
+DECLARE
+    consulta_segura TEXT;
+    keys TEXT[];
+    values TEXT[];
+    i INTEGER;
+BEGIN
+    -- Validar que no haya SQL injection en el template
+    IF consulta_template ~* '(DROP|DELETE|TRUNCATE|ALTER|CREATE)\s' THEN
+        RAISE EXCEPTION 'Consulta no permitida por seguridad';
+    END IF;
+    
+    -- Extraer keys y values del JSON
+    SELECT array_agg(key), array_agg(value)
+    INTO keys, values
+    FROM jsonb_each_text(parametros);
+    
+    -- Reemplazar placeholders de forma segura
+    consulta_segura := consulta_template;
+    FOR i IN 1..coalesce(array_length(keys, 1), 0) LOOP
+        IF consulta_segura LIKE '%' || keys[i-1] || '%' THEN
+            consulta_segura := replace(
+                consulta_segura, 
+                '{' || keys[i-1] || '}', 
+                quote_literal(values[i-1])
+            );
+        END IF;
+    END LOOP;
+    
+    -- Ejecutar consulta
+    RETURN QUERY EXECUTE consulta_segura;
+END;
+$$ LANGUAGE plpgsql;
+
+Validación de Input
+SQL
+
+CREATE OR REPLACE FUNCTION validar_y_ejecutar(
+    tabla TEXT,
+    accion TEXT,
+    datos JSONB
+)
+RETURNS JSONB AS $$
+DECLARE
+    consulta TEXT;
+    columnas_validas TEXT[];
+    columna TEXT;
+    valor TEXT;
+    resultado JSONB;
+BEGIN
+    -- Validar nombre de tabla (solo letras, números y underscores)
+    IF NOT tabla ~ '^[a-zA-Z_][a-zA-Z0-9_]*$' THEN
+        RAISE EXCEPTION 'Nombre de tabla inválido';
+    END IF;
+    
+    -- Validar acción
+    IF accion NOT IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE') THEN
+        RAISE EXCEPTION 'Acción no permitida';
+    END IF;
+    
+    -- Obtener columnas válidas de la tabla
+    SELECT array_agg(column_name::TEXT)
+    INTO columnas_validas
+    FROM information_schema.columns
+    WHERE table_name = tabla;
+    
+    -- Construir consulta según acción
+    CASE accion
+        WHEN 'SELECT' THEN
+            consulta := format('SELECT row_to_json(t) FROM %I t', tabla);
+            
+            -- Agregar WHERE si hay filtros
+            IF datos ? 'filtros' THEN
+                FOR columna, valor IN 
+                    SELECT * FROM jsonb_each_text(datos->'filtros')
+                LOOP
+                    IF columna = ANY(columnas_validas) THEN
+                        IF consulta LIKE '%WHERE%' THEN
+                            consulta := consulta || format(' AND %I = %L', columna, valor);
+                        ELSE
+                            consulta := consulta || format(' WHERE %I = %L', columna, valor);
+                        END IF;
+                    END IF;
+                END LOOP;
+            END IF;
+            
+            -- Agregar límite
+            IF datos ? 'limite' THEN
+                consulta := consulta || format(' LIMIT %s', datos->>'limite');
+            END IF;
+            
+        WHEN 'INSERT' THEN
+            -- Validar y construir INSERT
+            -- (Implementación similar)
+            
+        ELSE
+            RAISE EXCEPTION 'Acción no implementada';
+    END CASE;
+    
+    -- Ejecutar consulta
+    EXECUTE consulta INTO resultado;
+    
+    RETURN resultado;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+5. PERFORMANCE Y OPTIMIZACIÓN
+Prepared Statements vs EXECUTE Dinámico
+sql
+
+/*
+📊 COMPARACIÓN DE RENDIMIENTO:
+
+PREPARED STATEMENTS:
+✅ Ventajas:
+   - Plan de ejecución cacheado
+   - Menos parsing/planificación
+   - Ideal para consultas repetitivas
+❌ Desventajas:
+   - Memoria adicional
+   - No optimizado para consultas muy diferentes
+
+EXECUTE DINÁMICO:
+✅ Ventajas:
+   - Flexibilidad total
+   - Planificación específica para cada consulta
+❌ Desventajas:
+   - Overhead de planificación cada vez
+   - Mayor CPU usage
+*/
+
+Benchmark de Performance
+sql
+
+-- Crear función de benchmark
+CREATE OR REPLACE FUNCTION benchmark_execute_vs_prepare()
+RETURNS TABLE(metodo TEXT, tiempo_ms NUMERIC) AS $$
+DECLARE
+    inicio TIMESTAMP;
+    fin TIMESTAMP;
+    i INTEGER;
+BEGIN
+    -- Preparar datos de prueba
+    CREATE TEMP TABLE IF NOT EXISTS test_data (
+        id SERIAL PRIMARY KEY,
+        valor TEXT
+    );
+    
+    INSERT INTO test_data (valor)
+    SELECT md5(random()::TEXT)
+    FROM generate_series(1, 10000);
+    
+    -- Método 1: EXECUTE dinámico
+    inicio := clock_timestamp();
+    
+    FOR i IN 1..1000 LOOP
+        EXECUTE 'SELECT COUNT(*) FROM test_data WHERE id = $1' 
+        USING (i % 1000) + 1;
+    END LOOP;
+    
+    fin := clock_timestamp();
+    
+    RETURN QUERY SELECT 
+        'EXECUTE Dinámico'::TEXT,
+        EXTRACT(EPOCH FROM (fin - inicio)) * 1000;
+    
+    -- Método 2: Prepared Statement
+    inicio := clock_timestamp();
+    
+    PREPARE test_prepared (INT) AS
+        SELECT COUNT(*) FROM test_data WHERE id = $1;
+    
+    FOR i IN 1..1000 LOOP
+        EXECUTE test_prepared((i % 1000) + 1);
+    END LOOP;
+    
+    DEALLOCATE test_prepared;
+    
+    fin := clock_timestamp();
+    
+    RETURN QUERY SELECT 
+        'Prepared Statement'::TEXT,
+        EXTRACT(EPOCH FROM (fin - inicio)) * 1000;
+    
+    -- Limpiar
+    DROP TABLE test_data;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Ejecutar benchmark
+SELECT * FROM benchmark_execute_vs_prepare();
+
+Optimización con EXECUTE
+sql
+
+-- 1. Cache de consultas dinámicas
+CREATE OR REPLACE FUNCTION consulta_cacheada(
+    tipo_consulta TEXT,
+    parametros JSONB
+)
+RETURNS SETOF JSON AS $$
+DECLARE
+    cache_key TEXT;
+    cache_result JSON[];
+    consulta TEXT;
+BEGIN
+    -- Generar clave de cache
+    cache_key := md5(tipo_consulta || parametros::TEXT);
+    
+    -- Verificar cache (tabla temporal de sesión)
+    BEGIN
+        SELECT resultados 
+        INTO cache_result
+        FROM temp_query_cache
+        WHERE clave = cache_key
+        AND expiracion > CURRENT_TIMESTAMP;
+        
+        IF FOUND THEN
+            RETURN QUERY SELECT unnest(cache_result);
+            RETURN;
+        END IF;
+    EXCEPTION WHEN UNDEFINED_TABLE THEN
+        -- Tabla de cache no existe, crearla
+        CREATE TEMP TABLE temp_query_cache (
+            clave TEXT PRIMARY KEY,
+            resultados JSON[],
+            expiracion TIMESTAMP
+        ) ON COMMIT DROP;
+    END;
+    
+    -- Construir y ejecutar consulta
+    CASE tipo_consulta
+        WHEN 'ventas_por_dia' THEN
+            consulta := format('
+                SELECT json_build_object(
+                    ''dia'', DATE_TRUNC(''day'', fecha),
+                    ''ventas'', COUNT(*),
+                    ''total'', SUM(total)
+                )
+                FROM ventas
+                WHERE fecha BETWEEN %L AND %L
+                GROUP BY DATE_TRUNC(''day'', fecha)
+                ORDER BY 1',
+                parametros->>'fecha_inicio',
+                parametros->>'fecha_fin'
+            );
+        -- Más tipos de consulta...
+    END CASE;
+    
+    -- Ejecutar y cachear
+    EXECUTE consulta INTO cache_result;
+    
+    INSERT INTO temp_query_cache 
+    VALUES (cache_key, cache_result, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
+    ON CONFLICT (clave) DO UPDATE SET
+        resultados = EXCLUDED.resultados,
+        expiracion = EXCLUDED.expiracion;
+    
+    RETURN QUERY SELECT unnest(cache_result);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Planificación adaptativa
+CREATE OR REPLACE FUNCTION consulta_adaptativa(
+    filtros JSONB,
+    estimacion_filas INT
+)
+RETURNS SETOF productos AS $$
+DECLARE
+    consulta TEXT;
+    condiciones TEXT[];
+    clave TEXT;
+    valor TEXT;
+BEGIN
+    -- Construir condiciones
+    FOR clave, valor IN 
+        SELECT * FROM jsonb_each_text(filtros)
+    LOOP
+        condiciones := array_append(condiciones, 
+            format('%I = %L', clave, valor));
+    END LOOP;
+    
+    -- Construir consulta base
+    consulta := 'SELECT * FROM productos';
+    
+    IF array_length(condiciones, 1) > 0 THEN
+        consulta := consulta || ' WHERE ' || array_to_string(condiciones, ' AND ');
+    END IF;
+    
+    -- Ajustar estrategia basada en estimación
+    IF estimacion_filas < 100 THEN
+        -- Pocas filas: ordenamiento completo
+        consulta := consulta || ' ORDER BY id';
+    ELSIF estimacion_filas BETWEEN 100 AND 10000 THEN
+        -- Filas moderadas: usar índice
+        consulta := consulta || ' ORDER BY fecha_creacion DESC';
+    ELSE
+        -- Muchas filas: sampling
+        consulta := format(
+            'SELECT * FROM (%s) t TABLESAMPLE SYSTEM (%s)',
+            consulta,
+            LEAST(10, 100000.0 / GREATEST(estimacion_filas, 1))
+        );
+    END IF;
+    
+    -- Ejecutar consulta adaptativa
+    RETURN QUERY EXECUTE consulta;
+END;
+$$ LANGUAGE plpgsql;
+
+EXPLAIN con EXECUTE
+sql
+
+-- Analizar plan de ejecución de consultas dinámicas
+CREATE OR REPLACE FUNCTION analizar_consulta_dinamica(consulta_sql TEXT)
+RETURNS TABLE(plan_line TEXT) AS $$
+DECLARE
+    explain_result TEXT;
+BEGIN
+    -- Ejecutar EXPLAIN
+    EXECUTE 'EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) ' || consulta_sql
+    INTO explain_result;
+    
+    -- Devolver línea por línea
+    RETURN QUERY 
+    SELECT unnest(string_to_array(explain_result, E'\n')) AS plan_line;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Uso
+SELECT * FROM analizar_consulta_dinamica(
+    'SELECT * FROM usuarios WHERE edad > 25'
+);
+
+-- Para prepared statements
+PREPARE analizar_plan (INT) AS
+    SELECT * FROM usuarios WHERE id > $1;
+
+-- Ver plan
+EXPLAIN EXECUTE analizar_plan(1000);
+
+6. EJEMPLOS AVANZADOS
+Sistema de Reporting Dinámico
+sql
+
+CREATE OR REPLACE FUNCTION generar_reporte_dinamico(
+    config_reporte JSONB
+)
+RETURNS TABLE(
+    columna_nombre TEXT,
+    columna_valor TEXT,
+    fila_numero INT
+) AS $$
+DECLARE
+    consulta_sql TEXT;
+    columna RECORD;
+    filtro RECORD;
+    ordenamiento TEXT;
+    limite INT;
+    offset_val INT;
+    fila_count INT := 0;
+    resultado RECORD;
+BEGIN
+    -- Extraer configuración
+    SELECT 
+        config_reporte->>'tabla',
+        config_reporte->>'ordenamiento',
+        (config_reporte->>'limite')::INT,
+        (config_reporte->>'offset')::INT
+    INTO 
+        consulta_sql,
+        ordenamiento,
+        limite,
+        offset_val;
+    
+    -- Validar tabla
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = consulta_sql
+    ) THEN
+        RAISE EXCEPTION 'Tabla % no existe', consulta_sql;
+    END IF;
+    
+    -- Construir SELECT con columnas específicas
+    consulta_sql := 'SELECT ';
+    
+    IF config_reporte ? 'columnas' THEN
+        -- Columnas específicas
+        FOR columna IN 
+            SELECT value::TEXT 
+            FROM jsonb_array_elements_text(config_reporte->'columnas')
+        LOOP
+            -- Validar columna existe
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = (config_reporte->>'tabla')
+                AND column_name = columna.value
+            ) THEN
+                RAISE EXCEPTION 'Columna % no existe', columna.value;
+            END IF;
+            
+            IF consulta_sql != 'SELECT ' THEN
+                consulta_sql := consulta_sql || ', ';
+            END IF;
+            
+            consulta_sql := consulta_sql || quote_ident(columna.value);
+        END LOOP;
+    ELSE
+        -- Todas las columnas
+        consulta_sql := consulta_sql || ' * ';
+    END IF;
+    
+    consulta_sql := consulta_sql || ' FROM ' || 
+                   quote_ident(config_reporte->>'tabla');
+    
+    -- Agregar filtros
+    IF config_reporte ? 'filtros' THEN
+        consulta_sql := consulta_sql || ' WHERE ';
+        
+        FOR filtro IN 
+            SELECT key, value 
+            FROM jsonb_each_text(config_reporte->'filtros')
+        LOOP
+            IF consulta_sql NOT LIKE '%WHERE 1=1%' THEN
+                consulta_sql := consulta_sql || ' AND ';
+            END IF;
+            
+            consulta_sql := consulta_sql || 
+                format('%I = %L', filtro.key, filtro.value);
+        END LOOP;
+    END IF;
+    
+    -- Agregar ordenamiento
+    IF ordenamiento IS NOT NULL THEN
+        consulta_sql := consulta_sql || ' ORDER BY ' || 
+                       quote_ident(ordenamiento);
+    END IF;
+    
+    -- Agregar paginación
+    IF limite IS NOT NULL THEN
+        consulta_sql := consulta_sql || ' LIMIT ' || limite;
+    END IF;
+    
+    IF offset_val IS NOT NULL THEN
+        consulta_sql := consulta_sql || ' OFFSET ' || offset_val;
+    END IF;
+    
+    -- Ejecutar y formatear resultados
+    FOR resultado IN EXECUTE consulta_sql
+    LOOP
+        fila_count := fila_count + 1;
+        
+        -- Devolver cada columna como fila separada
+        FOR columna IN 
+            SELECT key, value::TEXT
+            FROM json_each_text(row_to_json(resultado))
+        LOOP
+            columna_nombre := columna.key;
+            columna_valor := columna.value;
+            fila_numero := fila_count;
+            RETURN NEXT;
+        END LOOP;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Uso
+SELECT * FROM generar_reporte_dinamico('{
+    "tabla": "usuarios",
+    "columnas": ["id", "nombre", "email"],
+    "filtros": {"activo": "true"},
+    "ordenamiento": "nombre",
+    "limite": 10,
+    "offset": 0
+}');
+
+OR Dinámico con Múltiples Condiciones
+sql
+
+CREATE OR REPLACE FUNCTION buscar_con_filtros_dinamicos(
+    tabla_nombre TEXT,
+    condiciones JSONB  -- Array de objetos {columna, operador, valor}
+)
+RETURNS SETOF RECORD AS $$
+DECLARE
+    consulta TEXT;
+    condicion JSONB;
+    condicion_sql TEXT;
+    primera_condicion BOOLEAN := TRUE;
+    tipo_dato TEXT;
+BEGIN
+    -- Validar tabla existe
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = tabla_nombre
+    ) THEN
+        RAISE EXCEPTION 'Tabla % no existe', tabla_nombre;
+    END IF;
+    
+    -- Construir consulta
+    consulta := 'SELECT * FROM ' || quote_ident(tabla_nombre);
+    
+    IF jsonb_array_length(condiciones) > 0 THEN
+        consulta := consulta || ' WHERE ';
+        
+        FOR condicion IN 
+            SELECT * FROM jsonb_array_elements(condiciones)
+        LOOP
+            -- Validar columna existe
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = tabla_nombre
+                AND column_name = condicion->>'columna'
+            ) THEN
+                RAISE EXCEPTION 'Columna % no existe en tabla %', 
+                    condicion->>'columna', tabla_nombre;
+            END IF;
+            
+            -- Obtener tipo de dato para formateo correcto
+            SELECT data_type INTO tipo_dato
+            FROM information_schema.columns
+            WHERE table_name = tabla_nombre
+            AND column_name = condicion->>'columna';
+            
+            -- Construir condición SQL segura
+            condicion_sql := format(
+                '%I %s ',
+                condicion->>'columna',
+                condicion->>'operador'
+            );
+            
+            -- Formatear valor según tipo de dato
+            CASE tipo_dato
+                WHEN 'integer', 'numeric', 'decimal', 'float' THEN
+                    condicion_sql := condicion_sql || 
+                        (condicion->>'valor')::TEXT;
+                WHEN 'boolean' THEN
+                    condicion_sql := condicion_sql || 
+                        (condicion->>'valor')::TEXT;
+                WHEN 'timestamp', 'date', 'time' THEN
+                    condicion_sql := condicion_sql || 
+                        quote_literal(condicion->>'valor');
+                ELSE  -- texto y otros
+                    condicion_sql := condicion_sql || 
+                        quote_literal(condicion->>'valor');
+            END CASE;
+            
+            -- Agregar a consulta
+            IF NOT primera_condicion THEN
+                consulta := consulta || ' OR ';
+            END IF;
+            
+            consulta := consulta || '(' || condicion_sql || ')';
+            primera_condicion := FALSE;
+        END LOOP;
+    END IF;
+    
+    -- Ejecutar
+    RETURN QUERY EXECUTE consulta;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Uso
+SELECT * FROM buscar_con_filtros_dinamicos('productos', 
+'[
+    {"columna": "precio", "operador": "<", "valor": "100"},
+    {"columna": "categoria", "operador": "=", "valor": "Electrónica"},
+    {"columna": "stock", "operador": ">", "valor": "0"}
+]') AS (id INT, nombre TEXT, precio DECIMAL, categoria TEXT, stock INT);
+
+Sistema de Migración Dinámica
+sql
+
+CREATE OR REPLACE FUNCTION migrar_datos_dinamica(
+    tabla_origen TEXT,
+    tabla_destino TEXT,
+    mapeo_columnas JSONB  -- {origen: destino, ...}
+)
+RETURNS BIGINT AS $$
+DECLARE
+    consulta_insert TEXT;
+    consulta_select TEXT;
+    columnas_origen TEXT[];
+    columnas_destino TEXT[];
+    columna TEXT;
+    total_insertados BIGINT := 0;
+    batch_size INT := 1000;
+    offset_val INT := 0;
+    filas_afectadas INT;
+BEGIN
+    -- Validar tablas existen
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = tabla_origen
+    ) THEN
+        RAISE EXCEPTION 'Tabla origen % no existe', tabla_origen;
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = tabla_destino
+    ) THEN
+        RAISE EXCEPTION 'Tabla destino % no existe', tabla_destino;
+    END IF;
+    
+    -- Preparar arrays de columnas
+    SELECT 
+        array_agg(key),
+        array_agg(value::TEXT)
+    INTO 
+        columnas_origen,
+        columnas_destino
+    FROM jsonb_each_text(mapeo_columnas);
+    
+    -- Validar columnas
+    FOREACH columna IN ARRAY columnas_origen
+    LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = tabla_origen
+            AND column_name = columna
+        ) THEN
+            RAISE EXCEPTION 'Columna origen % no existe', columna;
+        END IF;
+    END LOOP;
+    
+    FOREACH columna IN ARRAY columnas_destino
+    LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = tabla_destino
+            AND column_name = columna
+        ) THEN
+            RAISE EXCEPTION 'Columna destino % no existe', columna;
+        END IF;
+    END LOOP;
+    
+    -- Construir consultas
+    consulta_select := format(
+        'SELECT %s FROM %I',
+        array_to_string(columnas_origen, ', '),
+        tabla_origen
+    );
+    
+    consulta_insert := format(
+        'INSERT INTO %I (%s) VALUES %s',
+        tabla_destino,
+        array_to_string(columnas_destino, ', '),
+        '(' || array_to_string(
+            array_fill('$%s'::TEXT, ARRAY[array_length(columnas_destino, 1)]),
+            ', '
+        ) || ')'
+    );
+    
+    -- Migrar por lotes
+    LOOP
+        -- Construir consulta con OFFSET y LIMIT
+        EXECUTE format('%s LIMIT $1 OFFSET $2', consulta_select)
+        USING batch_size, offset_val;
+        
+        GET DIAGNOSTICS filas_afectadas = ROW_COUNT;
+        
+        EXIT WHEN filas_afectadas = 0;
+        
+        -- Insertar lote actual
+        EXECUTE consulta_insert 
+        USING (SELECT array_agg(row) FROM (
+            EXECUTE format('%s LIMIT $1 OFFSET $2', consulta_select)
+            USING batch_size, offset_val
+        ) AS row);
+        
+        GET DIAGNOSTICS filas_afectadas = ROW_COUNT;
+        total_insertados := total_insertados + filas_afectadas;
+        
+        offset_val := offset_val + batch_size;
+        
+        -- Commit periódico
+        COMMIT;
+        
+        -- Log progreso
+        RAISE NOTICE 'Migrados % registros...', total_insertados;
+    END LOOP;
+    
+    RETURN total_insertados;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Uso
+SELECT migrar_datos_dinamica(
+    'usuarios_vieja',
+    'usuarios_nueva',
+    '{
+        "id": "id",
+        "nombre_completo": "nombre",
+        "correo": "email",
+        "fecha_reg": "fecha_registro"
+    }'
+);
+
+7. BUENAS PRÁCTICAS
+Seguridad
+sql
+
+-- 1. SIEMPRE usar USING para parámetros
+-- ❌ MAL
+EXECUTE 'UPDATE usuarios SET activo = true WHERE id = ' || usuario_id;
+
+-- ✅ BIEN
+EXECUTE 'UPDATE usuarios SET activo = true WHERE id = $1'
+USING usuario_id;
+
+-- 2. Validar nombres de tablas/columnas
+CREATE OR REPLACE FUNCTION validar_identificador(nombre TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    -- Solo letras, números, underscores, y no empieza con número
+    RETURN nombre ~ '^[a-zA-Z_][a-zA-Z0-9_]*$';
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Usar funciones de escape
+CREATE OR REPLACE FUNCTION construir_consulta_segura(
+    tabla TEXT,
+    condiciones TEXT[] DEFAULT NULL
+)
+RETURNS TEXT AS $$
+DECLARE
+    consulta TEXT;
+    condicion TEXT;
+BEGIN
+    -- Escapar nombre de tabla
+    consulta := format('SELECT * FROM %I', tabla);
+    
+    IF condiciones IS NOT NULL THEN
+        consulta := consulta || ' WHERE ';
+        FOREACH condicion IN ARRAY condiciones
+        LOOP
+            -- Usar placeholder seguro
+            consulta := consulta || condicion || ' AND ';
+        END LOOP;
+        
+        -- Remover último AND
+        consulta := rtrim(consulta, ' AND ');
+    END IF;
+    
+    RETURN consulta;
+END;
+$$ LANGUAGE plpgsql;
+
+Performance
+sql
+
+-- 1. Evitar EXECUTE innecesario
+-- ❌ MAL: EXECUTE para consultas estáticas
+EXECUTE 'SELECT * FROM usuarios WHERE activo = true';
+
+-- ✅ BIEN: SQL directo
+SELECT * FROM usuarios WHERE activo = true;
+
+-- 2. Usar prepared statements para consultas repetitivas
+CREATE OR REPLACE FUNCTION procesar_lote_datos(
+    datos JSONB[]
+)
+RETURNS VOID AS $$
+DECLARE
+    dato JSONB;
+BEGIN
+    -- Preparar statement una vez
+    PREPARE insert_dato (JSONB) AS
+        INSERT INTO datos_procesados (datos) VALUES ($1);
+    
+    FOREACH dato IN ARRAY datos
+    LOOP
+        EXECUTE insert_dato(dato);
+    END LOOP;
+    
+    DEALLOCATE insert_dato;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Batch operations
+CREATE OR REPLACE FUNCTION insertar_lote_eficiente(
+    tabla TEXT,
+    columnas TEXT[],
+    valores ANYARRAY[]
+)
+RETURNS BIGINT AS $$
+DECLARE
+    consulta TEXT;
+    placeholders TEXT;
+    filas_afectadas BIGINT;
+    i INT;
+BEGIN
+    -- Construir consulta batch
+    placeholders := '';
+    FOR i IN 1..array_length(valores, 1) LOOP
+        IF i > 1 THEN
+            placeholders := placeholders || ', ';
+        END IF;
+        placeholders := placeholders || '(';
+        
+        FOR j IN 1..array_length(columnas, 1) LOOP
+            IF j > 1 THEN
+                placeholders := placeholders || ', ';
+            END IF;
+            placeholders := placeholders || '$' || ((i-1) * array_length(columnas, 1) + j);
+        END LOOP;
+        
+        placeholders := placeholders || ')';
+    END LOOP;
+    
+    consulta := format(
+        'INSERT INTO %I (%s) VALUES %s',
+        tabla,
+        array_to_string(columnas, ', '),
+        placeholders
+    );
+    
+    -- Aplanar array 2D a 1D para USING
+    EXECUTE consulta USING (SELECT array_flatten_2d(valores));
+    
+    GET DIAGNOSTICS filas_afectadas = ROW_COUNT;
+    RETURN filas_afectadas;
+END;
+$$ LANGUAGE plpgsql;
+
+Mantenibilidad
+sql
+
+-- 1. Documentar consultas dinámicas
+CREATE OR REPLACE FUNCTION consulta_compleja_dinamica(
+    -- Parámetros documentados
+    tabla TEXT,           -- Nombre de la tabla a consultar
+    filtros JSONB,        -- Filtros en formato JSON
+    ordenamiento TEXT,    -- Columna para ORDER BY
+    limite INT DEFAULT 100 -- Límite de resultados
+)
+RETURNS SETOF JSON AS $$
+/*
+DESCRIPCIÓN:
+    Ejecuta una consulta dinámica con múltiples filtros.
+    
+PARÁMETROS:
+    tabla - Nombre de la tabla (validado)
+    filtros - {columna: valor, ...}
+    ordenamiento - Columna para ordenar
+    limite - Máximo número de resultados
+    
+EJEMPLO:
+    SELECT * FROM consulta_compleja_dinamica(
+        'usuarios',
+        '{"activo": true, "edad": 25}',
+        'nombre',
+        10
+    );
+*/
+DECLARE
+    consulta TEXT;
+    clave TEXT;
+    valor TEXT;
+    condiciones TEXT[] := '{}';
+BEGIN
+    -- Código aquí...
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Logging de consultas ejecutadas
+CREATE OR REPLACE FUNCTION ejecutar_con_log(
+    consulta_template TEXT,
+    parametros ANYARRAY DEFAULT NULL
+)
+RETURNS SETOF RECORD AS $$
+DECLARE
+    consulta_final TEXT;
+    inicio TIMESTAMP;
+    duracion INTERVAL;
+    filas_afectadas BIGINT;
+    resultado RECORD;
+BEGIN
+    inicio := clock_timestamp();
+    
+    -- Construir consulta final
+    IF parametros IS NOT NULL THEN
+        EXECUTE consulta_template USING parametros;
+    ELSE
+        EXECUTE consulta_template;
+    END IF;
+    
+    duracion := clock_timestamp() - inicio;
+    GET DIAGNOSTICS filas_afectadas = ROW_COUNT;
+    
+    -- Log a tabla de auditoría
+    INSERT INTO auditoria_consultas (
+        consulta,
+        parametros,
+        duracion,
+        filas_afectadas,
+        usuario,
+        fecha
+    ) VALUES (
+        consulta_template,
+        parametros,
+        duracion,
+        filas_afectadas,
+        CURRENT_USER,
+        CURRENT_TIMESTAMP
+    );
+    
+    -- Retornar resultados
+    IF parametros IS NOT NULL THEN
+        RETURN QUERY EXECUTE consulta_template USING parametros;
+    ELSE
+        RETURN QUERY EXECUTE consulta_template;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+8. EJEMPLOS CON PYTHON
+Clase para Ejecución Dinámica Segura
+python
+
+import psycopg2
+from psycopg2 import sql
+from psycopg2.extras import RealDictCursor
+from typing import Any, List, Dict, Optional, Union
+import logging
+
+class PostgreSQLDynamicExecutor:
+    def __init__(self, connection_params):
+        self.connection_params = connection_params
+        self.conn = None
+        self.logger = logging.getLogger(__name__)
+        
+    def connect(self):
+        """Establecer conexión"""
+        try:
+            self.conn = psycopg2.connect(**self.connection_params)
+            self.logger.info("Conexión establecida")
+            return self.conn
+        except Exception as e:
+            self.logger.error(f"Error de conexión: {e}")
+            raise
+    
+    def disconnect(self):
+        """Cerrar conexión"""
+        if self.conn:
+            self.conn.close()
+            self.logger.info("Conexión cerrada")
+    
+    def execute_dynamic_sql(self, query_template: str, params: tuple = None) -> List[Dict]:
+        """Ejecutar SQL dinámico de forma segura"""
+        if not self.conn:
+            self.connect()
+        
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                if params:
+                    cursor.execute(query_template, params)
+                else:
+                    cursor.execute(query_template)
+                
+                if cursor.description:
+                    results = cursor.fetchall()
+                    return [dict(row) for row in results]
+                else:
+                    self.conn.commit()
+                    return []
+                    
+        except Exception as e:
+            self.conn.rollback()
+            self.logger.error(f"Error ejecutando SQL: {e}")
+            raise
+    
+    def execute_with_placeholders(self, query_template: str, placeholders: Dict[str, Any]) -> List[Dict]:
+        """Ejecutar SQL con placeholders nombrados"""
+        if not self.conn:
+            self.connect()
+        
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Construir SQL seguro con psycopg2.sql
+                query = sql.SQL(query_template).format(
+                    **{k: sql.Identifier(v) if k.startswith('ident_') 
+                       else sql.Literal(v) 
+                       for k, v in placeholders.items()}
+                )
+                
+                cursor.execute(query)
+                
+                if cursor.description:
+                    results = cursor.fetchall()
+                    return [dict(row) for row in results]
+                else:
+                    self.conn.commit()
+                    return []
+                    
+        except Exception as e:
+            self.conn.rollback()
+            self.logger.error(f"Error con placeholders: {e}")
+            raise
+    
+    def prepare_and_execute(self, query_name: str, query_template: str, params_list: List[tuple]) -> List[List[Dict]]:
+        """Preparar statement y ejecutar múltiples veces"""
+        if not self.conn:
+            self.connect()
+        
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Preparar statement
+                cursor.execute(f"PREPARE {query_name} AS {query_template}")
+                
+                results = []
+                for params in params_list:
+                    cursor.execute(f"EXECUTE {query_name} {self._format_params(params)}")
+                    
+                    if cursor.description:
+                        results.append([dict(row) for row in cursor.fetchall()])
+                
+                # Limpiar prepared statement
+                cursor.execute(f"DEALLOCATE {query_name}")
+                self.conn.commit()
+                
+                return results
+                
+        except Exception as e:
+            self.conn.rollback()
+            self.logger.error(f"Error en prepared statement: {e}")
+            raise
+        finally:
+            # Asegurar limpieza
+            try:
+                with self.conn.cursor() as cursor:
+                    cursor.execute(f"DEALLOCATE {query_name}")
+            except:
+                pass
+    
+    def _format_params(self, params: tuple) -> str:
+        """Formatear parámetros para EXECUTE"""
+        formatted = []
+        for param in params:
+            if param is None:
+                formatted.append("NULL")
+            elif isinstance(param, str):
+                formatted.append(f"'{param.replace("'", "''")}'")
+            elif isinstance(param, (int, float)):
+                formatted.append(str(param))
+            elif isinstance(param, bool):
+                formatted.append("TRUE" if param else "FALSE")
+            else:
+                formatted.append(f"'{str(param)}'")
+        
+        return "(" + ", ".join(formatted) + ")"
+    
+    def dynamic_table_operations(self, table_name: str, operation: str, **kwargs) -> Any:
+        """Operaciones dinámicas sobre tablas"""
+        operations = {
+            'select': self._dynamic_select,
+            'insert': self._dynamic_insert,
+            'update': self._dynamic_update,
+            'delete': self._dynamic_delete,
+            'describe': self._dynamic_describe
+        }
+        
+        if operation not in operations:
+            raise ValueError(f"Operación no soportada: {operation}")
+        
+        return operations[operation](table_name, **kwargs)
+    
+    def _dynamic_select(self, table_name: str, **kwargs) -> List[Dict]:
+        """SELECT dinámico"""
+        columns = kwargs.get('columns', ['*'])
+        where = kwargs.get('where', {})
+        order_by = kwargs.get('order_by')
+        limit = kwargs.get('limit')
+        offset = kwargs.get('offset')
+        
+        query_parts = [f"SELECT {', '.join(columns)} FROM {table_name}"]
+        
+        if where:
+            conditions = [f"{k} = %s" for k in where.keys()]
+            query_parts.append(f"WHERE {' AND '.join(conditions)}")
+        
+        if order_by:
+            query_parts.append(f"ORDER BY {order_by}")
+        
+        if limit is not None:
+            query_parts.append(f"LIMIT {limit}")
+        
+        if offset is not None:
+            query_parts.append(f"OFFFSET {offset}")
+        
+        query = " ".join(query_parts)
+        params = tuple(where.values()) if where else None
+        
+        return self.execute_dynamic_sql(query, params)
+    
+    def _dynamic_insert(self, table_name: str, **kwargs) -> int:
+        """INSERT dinámico"""
+        data = kwargs.get('data', {})
+        return_id = kwargs.get('return_id', False)
+        
+        if not data:
+            raise ValueError("No hay datos para insertar")
+        
+        columns = list(data.keys())
+        values = list(data.values())
+        placeholders = ", ".join(["%s"] * len(values))
+        
+        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+        
+        if return_id:
+            query += " RETURNING id"
+            result = self.execute_dynamic_sql(query, tuple(values))
+            return result[0]['id'] if result else None
+        else:
+            self.execute_dynamic_sql(query, tuple(values))
+            return 1
+    
+    def _dynamic_describe(self, table_name: str, **kwargs) -> List[Dict]:
+        """Obtener estructura de tabla"""
+        query = """
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default
+            FROM information_schema.columns
+            WHERE table_name = %s
+            ORDER BY ordinal_position
+        """
+        
+        return self.execute_dynamic_sql(query, (table_name,))
+
+# Ejemplo de uso
+if __name__ == "__main__":
+    # Configuración
+    config = {
+        'dbname': 'test_db',
+        'user': 'postgres',
+        'password': 'password',
+        'host': 'localhost'
+    }
+    
+    # Configurar logging
+    logging.basicConfig(level=logging.INFO)
+    
+    executor = PostgreSQLDynamicExecutor(config)
+    executor.connect()
+    
+    # 1. Ejecutar SQL dinámico simple
+    resultados = executor.execute_dynamic_sql(
+        "SELECT * FROM usuarios WHERE activo = %s",
+        (True,)
+    )
+    print(f"Usuarios activos: {len(resultados)}")
+    
+    # 2. Usar placeholders nombrados
+    resultados = executor.execute_with_placeholders(
+        "SELECT * FROM {ident_table} WHERE {ident_column} = {value}",
+        {
+            'ident_table': 'usuarios',
+            'ident_column': 'email',
+            'value': 'juan@email.com'
+        }
+    )
+    print(f"Usuario encontrado: {resultados}")
+    
+    # 3. Prepared statements múltiples
+    params_list = [
+        (1,),
+        (2,),
+        (3,)
+    ]
+    
+    resultados = executor.prepare_and_execute(
+        query_name="get_user",
+        query_template="SELECT * FROM usuarios WHERE id = $1",
+        params_list=params_list
+    )
+    print(f"Resultados preparados: {len(resultados)} lotes")
+    
+    # 4. Operaciones dinámicas sobre tablas
+    # Insertar
+    nuevo_id = executor.dynamic_table_operations(
+        table_name='usuarios',
+        operation='insert',
+        data={
+            'nombre': 'María',
+            'email': 'maria@email.com',
+            'activo': True
+        },
+        return_id=True
+    )
+    print(f"Nuevo usuario ID: {nuevo_id}")
+    
+    # Seleccionar
+    usuarios = executor.dynamic_table_operations(
+        table_name='usuarios',
+        operation='select',
+        columns=['id', 'nombre', 'email'],
+        where={'activo': True},
+        order_by='nombre',
+        limit=10
+    )
+    print(f"Usuarios activos: {usuarios}")
+    
+    # Describir tabla
+    estructura = executor.dynamic_table_operations(
+        table_name='usuarios',
+        operation='describe'
+    )
+    print(f"Estructura de tabla: {estructura}")
+    
+    executor.disconnect()
+
+Sistema de Query Builder Dinámico
+python
+
+from typing import Dict, List, Optional, Union, Any
+from enum import Enum
+
+class QueryType(Enum):
+    SELECT = "SELECT"
+    INSERT = "INSERT"
+    UPDATE = "UPDATE"
+    DELETE = "DELETE"
+
+class PostgreSQLQueryBuilder:
+    def __init__(self, executor):
+        self.executor = executor
+        self.reset()
+    
+    def reset(self):
+        """Reiniciar builder"""
+        self.query_type = None
+        self.table = None
+        self.columns = []
+        self.values = {}
+        self.where_conditions = []
+        self.where_params = []
+        self.order_by = None
+        self.limit = None
+        self.offset = None
+        self.returning = []
+    
+    def select(self, table: str, columns: List[str] = None):
+        """Construir SELECT"""
+        self.reset()
+        self.query_type = QueryType.SELECT
+        self.table = table
+        self.columns = columns or ['*']
+        return self
+    
+    def insert(self, table: str, data: Dict[str, Any]):
+        """Construir INSERT"""
+        self.reset()
+        self.query_type = QueryType.INSERT
+        self.table = table
+        self.values = data
+        return self
+    
+    def update(self, table: str, data: Dict[str, Any]):
+        """Construir UPDATE"""
+        self.reset()
+        self.query_type = QueryType.UPDATE
+        self.table = table
+        self.values = data
+        return self
+    
+    def delete(self, table: str):
+        """Construir DELETE"""
+        self.reset()
+        self.query_type = QueryType.DELETE
+        self.table = table
+        return self
+    
+    def where(self, column: str, operator: str, value: Any):
+        """Agregar condición WHERE"""
+        self.where_conditions.append(f"{column} {operator} %s")
+        self.where_params.append(value)
+        return self
+    
+    def where_in(self, column: str, values: List[Any]):
+        """WHERE IN condición"""
+        placeholders = ', '.join(['%s'] * len(values))
+        self.where_conditions.append(f"{column} IN ({placeholders})")
+        self.where_params.extend(values)
+        return self
+    
+    def order_by(self, column: str, direction: str = "ASC"):
+        """Agregar ORDER BY"""
+        self.order_by = f"{column} {direction}"
+        return self
+    
+    def limit(self, limit: int):
+        """Agregar LIMIT"""
+        self.limit = limit
+        return self
+    
+    def offset(self, offset: int):
+        """Agregar OFFSET"""
+        self.offset = offset
+        return self
+    
+    def returning(self, columns: List[str]):
+        """Agregar RETURNING"""
+        self.returning = columns
+        return self
+    
+    def build(self) -> tuple:
+        """Construir consulta SQL y parámetros"""
+        if self.query_type == QueryType.SELECT:
+            return self._build_select()
+        elif self.query_type == QueryType.INSERT:
+            return self._build_insert()
+        elif self.query_type == QueryType.UPDATE:
+            return self._build_update()
+        elif self.query_type == QueryType.DELETE:
+            return self._build_delete()
+        else:
+            raise ValueError("Tipo de consulta no especificado")
+    
+    def _build_select(self) -> tuple:
+        """Construir SELECT query"""
+        query = f"SELECT {', '.join(self.columns)} FROM {self.table}"
+        params = []
+        
+        if self.where_conditions:
+            query += f" WHERE {' AND '.join(self.where_conditions)}"
+            params.extend(self.where_params)
+        
+        if self.order_by:
+            query += f" ORDER BY {self.order_by}"
+        
+        if self.limit is not None:
+            query += f" LIMIT {self.limit}"
+        
+        if self.offset is not None:
+            query += f" OFFSET {self.offset}"
+        
+        return query, params
+    
+    def _build_insert(self) -> tuple:
+        """Construir INSERT query"""
+        columns = list(self.values.keys())
+        placeholders = ', '.join(['%s'] * len(columns))
+        params = list(self.values.values())
+        
+        query = f"INSERT INTO {self.table} ({', '.join(columns)}) VALUES ({placeholders})"
+        
+        if self.returning:
+            query += f" RETURNING {', '.join(self.returning)}"
+        
+        return query, params
+    
+    def _build_update(self) -> tuple:
+        """Construir UPDATE query"""
+        if not self.values:
+            raise ValueError("No hay valores para actualizar")
+        
+        set_clauses = [f"{k} = %s" for k in self.values.keys()]
+        params = list(self.values.values())
+        
+        query = f"UPDATE {self.table} SET {', '.join(set_clauses)}"
+        
+        if self.where_conditions:
+            query += f" WHERE {' AND '.join(self.where_conditions)}"
+            params.extend(self.where_params)
+        
+        if self.returning:
+            query += f" RETURNING {', '.join(self.returning)}"
+        
+        return query, params
+    
+    def _build_delete(self) -> tuple:
+        """Construir DELETE query"""
+        query = f"DELETE FROM {self.table}"
+        params = []
+        
+        if self.where_conditions:
+            query += f" WHERE {' AND '.join(self.where_conditions)}"
+            params.extend(self.where_params)
+        
+        if self.returning:
+            query += f" RETURNING {', '.join(self.returning)}"
+        
+        return query, params
+    
+    def execute(self) -> List[Dict]:
+        """Construir y ejecutar consulta"""
+        query, params = self.build()
+        return self.executor.execute_dynamic_sql(query, tuple(params) if params else None)
+
+# Ejemplo de uso
+if __name__ == "__main__":
+    executor = PostgreSQLDynamicExecutor({
+        'dbname': 'test_db',
+        'user': 'postgres',
+        'password': 'password',
+        'host': 'localhost'
+    })
+    executor.connect()
+    
+    builder = PostgreSQLQueryBuilder(executor)
+    
+    # 1. SELECT complejo
+    usuarios = builder.select('usuarios', ['id', 'nombre', 'email']) \
+        .where('activo', '=', True) \
+        .where('edad', '>', 18) \
+        .order_by('nombre') \
+        .limit(10) \
+        .execute()
+    
+    print(f"Usuarios encontrados: {len(usuarios)}")
+    
+    # 2. INSERT con RETURNING
+    nuevo_usuario = builder.insert('usuarios', {
+        'nombre': 'Carlos',
+        'email': 'carlos@email.com',
+        'activo': True,
+        'edad': 25
+    }).returning(['id']).execute()
+    
+    print(f"Nuevo usuario ID: {nuevo_usuario[0]['id']}")
+    
+    # 3. UPDATE múltiple
+    actualizados = builder.update('usuarios', {
+        'activo': False,
+        'fecha_baja': '2024-01-15'
+    }).where('ultimo_login', '<', '2023-01-01').execute()
+    
+    print(f"Usuarios desactivados: {len(actualizados)}")
+    
+    # 4. DELETE con WHERE IN
+    eliminados = builder.delete('logs') \
+        .where_in('tipo', ['debug', 'info']) \
+        .where('fecha', '<', '2023-01-01') \
+        .execute()
+    
+    print(f"Logs eliminados: {len(eliminados)}")
+    
+    executor.disconnect()
+
+Sistema Avanzado de Ejecución con Pool
+python
+
+import psycopg2
+from psycopg2 import pool
+from contextlib import contextmanager
+import threading
+from queue import Queue
+import time
+
+class PostgreSQLExecutorPool:
+    def __init__(self, connection_params, min_connections=1, max_connections=10):
+        self.connection_params = connection_params
+        self.connection_pool = pool.SimpleConnectionPool(
+            min_connections,
+            max_connections,
+            **connection_params
+        )
+        self.query_queue = Queue()
+        self.results = {}
+        self.result_lock = threading.Lock()
+        self.worker_threads = []
+        
+    def start_workers(self, num_workers=3):
+        """Iniciar workers para procesamiento concurrente"""
+        for i in range(num_workers):
+            worker = threading.Thread(
+                target=self._worker_loop,
+                daemon=True,
+                name=f"PostgreSQL-Worker-{i}"
+            )
+            worker.start()
+            self.worker_threads.append(worker)
+    
+    def _worker_loop(self):
+        """Loop de procesamiento de queries"""
+        while True:
+            try:
+                query_id, query, params, callback = self.query_queue.get()
+                
+                try:
+                    result = self._execute_safe(query, params)
+                    with self.result_lock:
+                        self.results[query_id] = {
+                            'success': True,
+                            'result': result,
+                            'error': None
+                        }
+                    
+                    if callback:
+                        callback(result)
+                        
+                except Exception as e:
+                    with self.result_lock:
+                        self.results[query_id] = {
+                            'success': False,
+                            'result': None,
+                            'error': str(e)
+                        }
+                
+                finally:
+                    self.query_queue.task_done()
+                    
+            except Exception as e:
+                print(f"Error en worker: {e}")
+    
+    def _execute_safe(self, query, params):
+        """Ejecutar query de forma segura con conexión del pool"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                if params:
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                
+                if cursor.description:
+                    return cursor.fetchall()
+                else:
+                    conn.commit()
+                    return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def execute_async(self, query, params=None, callback=None):
+        """Ejecutar query asincrónicamente"""
+        query_id = f"query_{int(time.time() * 1000)}_{hash(query)}"
+        
+        self.query_queue.put((query_id, query, params, callback))
+        
+        return query_id
+    
+    def get_result(self, query_id, timeout=30):
+        """Obtener resultado de query asincrónica"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            with self.result_lock:
+                if query_id in self.results:
+                    result = self.results.pop(query_id)
+                    return result
+            
+            time.sleep(0.1)
+        
+        return {
+            'success': False,
+            'result': None,
+            'error': 'Timeout esperando resultado'
+        }
+    
+    def execute_batch(self, queries):
+        """Ejecutar batch de queries"""
+        query_ids = []
+        
+        for query, params in queries:
+            query_id = self.execute_async(query, params)
+            query_ids.append(query_id)
+        
+        results = []
+        for query_id in query_ids:
+            result = self.get_result(query_id)
+            results.append(result)
+        
+        return results
+    
+    @contextmanager
+    def get_connection(self):
+        """Context manager para conexión directa"""
+        conn = self.connection_pool.getconn()
+        try:
+            yield conn
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def close(self):
+        """Cerrar pool y workers"""
+        self.query_queue.join()  # Esperar que se procesen todas las queries
+        
+        for worker in self.worker_threads:
+            worker.join(timeout=1)
+        
+        self.connection_pool.closeall()
+
+# Ejemplo de uso avanzado
+if __name__ == "__main__":
+    pool_executor = PostgreSQLExecutorPool({
+        'dbname': 'test_db',
+        'user': 'postgres',
+        'password': 'password',
+        'host': 'localhost'
+    }, min_connections=2, max_connections=5)
+    
+    pool_executor.start_workers(num_workers=3)
+    
+    # Ejecutar múltiples queries asincrónicamente
+    queries = [
+        ("SELECT * FROM usuarios WHERE activo = %s", (True,)),
+        ("SELECT COUNT(*) FROM productos", None),
+        ("SELECT * FROM pedidos WHERE fecha > %s", ('2024-01-01',))
+    ]
+    
+    # Ejecutar batch
+    results = pool_executor.execute_batch(queries)
+    
+    for i, result in enumerate(results):
+        if result['success']:
+            print(f"Query {i+1}: {len(result['result'])} resultados")
+        else:
+            print(f"Query {i+1} error: {result['error']}")
+    
+    # Ejecutar async con callback
+    def procesar_resultado(resultado):
+        print(f"Callback: {len(resultado)} filas recibidas")
+    
+    query_id = pool_executor.execute_async(
+        "SELECT * FROM logs ORDER BY fecha DESC LIMIT 100",
+        callback=procesar_resultado
+    )
+    
+    # Esperar resultado específico
+    time.sleep(1)  # Dar tiempo para procesar
+    resultado_final = pool_executor.get_result(query_id)
+    print(f"Resultado final: {resultado_final}")
+    
+    # Usar conexión directa para operaciones complejas
+    with pool_executor.get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                PREPARE mi_consulta (INT) AS
+                SELECT * FROM usuarios WHERE id > $1
+            """)
+            
+            cursor.execute("EXECUTE mi_consulta (0)")
+            usuarios = cursor.fetchall()
+            print(f"Usuarios con conexión directa: {len(usuarios)}")
+    
+    pool_executor.close()
+
+CONCLUSIÓN
+Resumen de Puntos Clave
+python
+
+"""
+🎯 RESUMEN DE EXECUTE:
+
+1. EXECUTE en PL/pgSQL:
+   • Para SQL dinámico
+   • Usar WITH para parámetros
+   • Siempre escapar con quote_ident/quote_literal
+
+2. Prepared Statements:
+   • Para consultas repetitivas
+   • Mejor performance
+   • Cache de planes de ejecución
+
+3. Seguridad:
+   • NUNCA concatenar strings directamente
+   • Siempre usar parámetros con USING
+   • Validar inputs del usuario
+
+4. Performance:
+   • Prepared statements para queries repetidas
+   • EXECUTE dinámico para queries únicas/complejas
+   • Considerar batch operations
+
+5. Buenas Prácticas:
+   • Documentar consultas dinámicas
+   • Logging de ejecuciones
+   • Manejo de errores robusto
+   • Validación de inputs
+"""
+
+Cuándo Usar Cada Enfoque
+python
+
+"""
+📊 GUÍA DE USO:
+
+Usar EXECUTE dinámico cuando:
+• La consulta cambia estructuralmente
+• Nombres de tablas/columnas son dinámicos
+• Necesitas máxima flexibilidad
+
+Usar Prepared Statements cuando:
+• Misma consulta, diferentes parámetros
+• Alta frecuencia de ejecución
+• Necesitas mejor performance
+
+Usar SQL directo cuando:
+• La consulta es estática
+• No necesitas flexibilidad
+• Simplicidad es prioridad
+"""
+
+Recomendaciones Finales
+python
+
+"""
+🚀 RECOMENDACIONES:
+
+1. Comienza con SQL directo cuando sea posible
+2. Usa prepared statements para consultas repetitivas
+3. Solo usa EXECUTE dinámico cuando sea necesario
+4. Implementa validación de seguridad siempre
+5. Monitoriza performance de consultas dinámicas
+6. Mantén logs de ejecución para debugging
+7. Prueba thoroughly con diferentes inputs
+"""
+
+¿Te gustaría profundizar en algún aspecto específico de EXECUTE o necesitas ejemplos de algún caso de uso particular? ¡Estoy aquí para ayudarte! 🚀

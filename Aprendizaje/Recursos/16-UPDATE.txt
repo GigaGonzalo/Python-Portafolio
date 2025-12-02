@@ -1,0 +1,1393 @@
+🔄 UPDATE: Actualización de Datos en PostgreSQL
+
+El comando UPDATE es fundamental para modificar datos existentes en tus tablas. Vamos a explorarlo en profundidad, desde lo básico hasta técnicas avanzadas.
+ÍNDICE
+
+    Sintaxis Básica
+
+    Condiciones WHERE
+
+    Actualización Múltiple
+
+    ACTUALIZAR con UNIRSE
+
+    UPDATE con Subconsultas
+
+    ACTUALIZACIÓN con REGRESO
+
+    Uso de Triggers con UPDATE
+
+    Buenas Prácticas
+
+    Ejemplos con Python 
+
+1. SINTAXIS BÁSICA
+Forma Estándar
+SQL
+
+-- Sintaxis básica 
+UPDATE  nombre_tabla
+ SET  
+    columna1  =  valor1 , 
+    columna2  =  valor2 , 
+    . . . 
+WHERE  condición ; 
+
+-- Ejemplo concreto 
+UPDATE  empleados
+ SET  
+    salario  =  50000 , 
+    departamento  =  'Ventas' , 
+    fecha_promocion  =  CURRENT_DATE 
+WHERE  id  =  1 ; 
+
+Actualización de Todas las Filas (¡CUIDADO!)
+SQL
+
+-- Actualiza TODAS las filas de la tabla 
+UPDATE  productos 
+ SET  precio  =  precio  *  1.10 ;   -- Aumenta todos los precios 10% 
+
+-- Siempre usa WHERE a menos que sea intencional 
+UPDATE  configuracion 
+ SET  tema  =  'oscuro' 
+WHERE  usuario_id  =  1 ;   -- SOLO para usuario específico 
+
+Actualización con Expresiones
+SQL
+
+-- Usando operaciones matemáticas 
+UPDATE  productos 
+ SET  
+    precio  =  precio  *  0.90 ,   -- 10% de descuento 
+    stock  =  stock  -  5 
+WHERE  categoria  =  'Liquidación' ; 
+
+-- Usando funciones 
+UPDATE  usuarios 
+ SET  
+    password_hash  =  crypt ( 'nueva_password' ,  gen_salt ( 'bf' ) ) , 
+    ultimo_cambio_password  =  CURRENT_TIMESTAMP 
+WHERE  id  =  1 ; 
+
+-- Concatenación de strings 
+UPDATE  clientes 
+ SET  
+    nombre_completo  =  nombre  ||  ' '  ||  apellido , 
+    email  =  LOWER ( email ) 
+WHERE  nombre_completo  IS  NULL ; 
+
+2. CONDICIONES WHERE
+Operadores Básicos
+SQL
+
+-- Igualdad 
+UPDATE  productos  SET  activo  =  false  WHERE  id  =  100 ; 
+
+-- Desigualdad 
+UPDATE  empleados  SET  bono  =  1000  WHERE  salario  <  40000 ; 
+
+-- BETWEEN 
+UPDATE  pedidos  SET  estado  =  'completado'  
+WHERE  fecha  BETWEEN  '2024-01-01'  AND  '2024-12-31' ; 
+
+-- IN 
+UPDATE  productos  SET  categoria  =  'Electrónica'  
+WHERE  id  IN  ( 1 ,  5 ,  10 ,  15 ) ; 
+
+-- LIKE/ILIKE 
+UPDATE  clientes  SET  region  =  'Norte'  
+WHERE  ciudad  ILIKE  '%madrid%'  OR  ciudad  ILIKE  '%barcelona%' ; 
+
+-- IS NULL / IS NOT NULL 
+UPDATE  empleados  SET  bono  =  500  
+WHERE  bono  IS  NULL  AND  salario  >  45000 ; 
+
+Condiciones Complejas
+SQL
+
+-- Múltiples condiciones con AND/OR 
+UPDATE  inventario 
+ SET  
+    estado  =  'bajo_stock' , 
+    fecha_alerta  =  CURRENT_DATE 
+WHERE  
+    ( stock  <  stock_minimo  AND  producto_id  IN  ( SELECT  id  FROM  productos  WHERE  activo  =  true ) ) 
+    OR  ( ultima_reposicion  <  CURRENT_DATE  -  INTERVAL  '30 days' ) 
+    OR  ( stock  =  0 ) ; 
+
+-- Usando CASE en WHERE 
+UPDATE  ventas 
+ SET  comision  =  monto  *  0.15 
+WHERE  
+    CASE  
+        WHEN  vendedor_experiencia  >  5  THEN  monto  >  10000 
+        WHEN  vendedor_experiencia  BETWEEN  2  AND  5  THEN  monto  >  5000 
+        ELSE  monto  >  1000 
+    END ; 
+
+3. ACTUALIZACIÓN MÚLTIPLE
+Actualizar Múltiples Columnas
+SQL
+
+-- Actualizar varias columnas a la vez 
+UPDATE  usuarios 
+ SET  
+    ultimo_login  =  CURRENT_TIMESTAMP , 
+    contador_logins  =  contador_logins  +  1 , 
+    ip_ultimo_login  =  '192.168.1.100' 
+WHERE  username  =  'admin' ; 
+
+-- Actualizar basado en otras columnas 
+UPDATE  productos 
+ SET  
+    precio_con_iva  =  precio_sin_iva  *  1.21 , 
+    margen_ganancia  =  ( precio_sin_iva  -  costo )  /  costo  *  100 , 
+    rentable  =  CASE  WHEN  ( precio_sin_iva  -  costo )  >  0  THEN  true  ELSE  false  END 
+WHERE  activo  =  true ; 
+
+Actualización Condicional con CASE
+SQL
+
+-- Actualización condicional compleja 
+UPDATE  empleados 
+ SET  
+    salario  =  CASE 
+        WHEN  departamento  =  'Ventas'  AND  ventas_anuales  >  100000  THEN  salario  *  1.20 
+        WHEN  departamento  =  'IT'  AND  experiencia  >  3  THEN  salario  *  1.15 
+        WHEN  evaluacion  =  'Excelente'  THEN  salario  *  1.10 
+        WHEN  evaluacion  =  'Buena'  THEN  salario  *  1.05 
+        ELSE  salario  *  1.02   -- Aumento mínimo 
+    END , 
+    nivel  =  CASE 
+        WHEN  salario  >  80000  THEN  'Senior' 
+        WHEN  salario  >  50000  THEN  'Mid' 
+        ELSE  'Junior' 
+    END 
+WHERE  activo  =  true ; 
+
+Actualización Masiva con Límites
+SQL
+
+-- Actualizar en lotes (para evitar bloqueos largos) 
+DO  $$
+ DECLARE 
+    batch_size  INT  : =  1000 ; 
+    rows_updated  INT  : =  batch_size ; 
+BEGIN 
+    WHILE  rows_updated  =  batch_size  LOOP 
+        UPDATE  pedidos 
+         SET  estado  =  'procesado' 
+        WHERE  estado  =  'pendiente' 
+        AND  id  IN  ( 
+            SELECT  id 
+             FROM  pedidos 
+             WHERE  estado  =  'pendiente' 
+            ORDER  BY  fecha_pedido
+             LIMIT  batch_size
+             FOR  UPDATE  SKIP LOCKED   -- Evita deadlocks 
+        ) ; 
+        
+        GET DIAGNOSTICS rows_updated  =  ROW_COUNT ; 
+        COMMIT ;   -- Commit periódico 
+        
+        -- Pequeña pausa para reducir carga 
+        PERFORM pg_sleep ( 0.1 ) ; 
+    END  LOOP ; 
+END  $$ ; 
+
+4. ACTUALIZAR CON UNIRSE
+UNIÓN INTERNA
+SQL
+
+-- Actualizar usando datos de otra tabla 
+UPDATE  empleados e
+ SET  
+    salario  =  salario  *  d . factor_aumento , 
+    departamento_id  =  d . id
+ FROM  departamentos d
+ WHERE  e . departamento_actual  =  d . nombre
+ AND  d . ubicacion  =  'Madrid' ; 
+
+-- Ejemplo práctico: actualizar precios basados en proveedor 
+UPDATE  productos p
+ SET  
+    precio  =  p . precio  *  pr . factor_inflacion , 
+    costo  =  p . costo  *  pr . factor_costo
+ FROM  proveedores pr
+ WHERE  p . proveedor_id  =  pr . id
+ AND  pr . pais  =  'España' 
+AND  pr . calificacion  =  'A' ; 
+
+LEFT JOIN (Para manejar NULLs)
+SQL
+
+-- Actualizar aunque no haya coincidencia 
+ ACTUALIZAR  clientes c
+ COLOCAR  
+    segmento  =   COALESCE  (  s  .  nombre  ,   'Sin Segmento'  )  , 
+    valor_del_cliente  =  c.compras_totales   compras_totales  *   COALESCE  (  s.multiplicador . )  ,   1 s 
+ DE  segmentos_del_cliente 
+  IZQUIERDA  UNIÓN  clientes_segmentos  EN  c.id   id  =  cscs.client_id  cs 
+ DONDE  cs  .  segment_id  =  s  .  id  O  cs  .  segment_id  ES   NULO  ; 
+
+Múltiples JOINs
+SQL
+
+-- Actualización compleja con múltiples relaciones 
+UPDATE  pedidos p
+ SET  
+    prioridad  =  'Alta' , 
+    fecha_entrega_estimada  =  p . fecha_pedido  +  INTERVAL  '2 days' 
+FROM  clientes c
+ JOIN  contratos ct  ON  c . id  =  ct . cliente_id
+ JOIN  niveles_servicio ns  ON  ct . nivel_servicio_id  =  ns . id
+ WHERE  p . cliente_id  =  c . id
+ AND  p . estado  =  'pendiente' 
+AND  ns . nombre  =  'Premium' 
+AND  p . total  >  1000 
+AND  c . antiguedad  >  INTERVAL  '1 year' ; 
+
+Auto UNIRSE
+SQL
+
+-- Actualizar basado en datos de la misma tabla 
+UPDATE  empleados e1
+ SET  
+    salario  =  e1 . salario  *  1.10 , 
+    jefe_id  =  e2 . id
+ FROM  empleados e2
+ WHERE  e1 . departamento_id  =  e2 . departamento_id
+ AND  e2 . cargo  =  'Director' 
+AND  e1 . cargo  =  'Gerente' 
+AND  e1 . salario  <  e2 . salario  *  0.5 ; 
+
+5. UPDATE CON SUBCONSULTAS
+Subconsulta escalar
+SQL
+
+-- Actualizar con valor calculado 
+UPDATE  productos 
+ SET  
+    precio_promedio_mercado  =  ( 
+        SELECT  AVG ( precio )  
+        FROM  productos_competencia 
+         WHERE  categoria  =  productos . categoria
+     ) , 
+    competitivo  =  CASE  
+        WHEN  precio  <=  ( 
+            SELECT  AVG ( precio )  *  0.9  
+            FROM  productos_competencia 
+             WHERE  categoria  =  productos . categoria
+         )  THEN  true  
+        ELSE  false  
+    END 
+WHERE  activo  =  true ; 
+
+-- Actualizar con correlación 
+UPDATE  empleados e
+ SET  
+    salario_relativo  =  e . salario  /  ( 
+        SELECT  AVG ( salario )  
+        FROM  empleados 
+         WHERE  departamento_id  =  e . departamento_id
+     )  *  100 
+WHERE  e . activo  =  true ; 
+
+Subconsulta en WHERE
+SQL
+
+-- Actualizar empleados que superan el promedio 
+UPDATE  empleados 
+ SET  bono  =  5000 
+WHERE  salario  >  ( 
+    SELECT  AVG ( salario )  
+    FROM  empleados 
+     WHERE  departamento_id  =  empleados . departamento_id
+ ) ; 
+
+-- Actualizar productos sin ventas recientes 
+UPDATE  productos 
+ SET  
+    activo  =  false , 
+    fecha_desactivacion  =  CURRENT_DATE 
+WHERE  id  NOT  IN  ( 
+    SELECT  DISTINCT  producto_id 
+     FROM  detalles_pedido dp
+     JOIN  pedidos p  ON  dp . pedido_id  =  p . id
+     WHERE  p . fecha  >  CURRENT_DATE  -  INTERVAL  '90 days' 
+) ; 
+
+Subconsulta relacionada
+SQL
+
+-- Actualizar el último pedido de cada cliente 
+UPDATE  pedidos p
+ SET  
+    prioridad  =  'Alta' , 
+    etiqueta  =  'Reciente' 
+WHERE  p . id  =  ( 
+    SELECT  id 
+     FROM  pedidos 
+     WHERE  cliente_id  =  p . cliente_id 
+     ORDER  BY  fecha_pedido  DESC  
+    LIMIT  1 
+) ; 
+
+-- Actualizar productos con stock bajo 
+UPDATE  inventario i
+ SET  
+    estado  =  'necesita_reposicion' , 
+    fecha_alerta  =  CURRENT_DATE 
+WHERE  i . stock  <  ( 
+    SELECT  AVG ( d . cantidad )  *  2 
+    FROM  detalles_pedido d
+     JOIN  pedidos p  ON  d . pedido_id  =  p . id
+     WHERE  d . producto_id  =  i . producto_id
+     AND  p . fecha  >  CURRENT_DATE  -  INTERVAL  '30 days' 
+) ; 
+
+CTE (Expresiones de tabla comunes)
+SQL
+
+-- UPDATE complejo con CTE 
+WITH  ventas_por_empleado  AS  ( 
+    SELECT  
+        empleado_id , 
+        SUM ( total )  as  ventas_totales , 
+        COUNT ( * )  as  num_ventas
+     FROM  ventas
+     WHERE  fecha  >=  DATE_TRUNC ( 'month' ,  CURRENT_DATE ) 
+    GROUP  BY  empleado_id
+ ) , 
+promedios  AS  ( 
+    SELECT  
+        AVG ( ventas_totales )  as  promedio_ventas , 
+        AVG ( num_ventas )  as  promedio_num_ventas
+     FROM  ventas_por_empleado
+ ) 
+UPDATE  empleados e
+ SET  
+    bono  =  CASE 
+        WHEN  v . ventas_totales  >  p . promedio_ventas  *  1.5  THEN  3000 
+        WHEN  v . ventas_totales  >  p . promedio_ventas  THEN  1500 
+        ELSE  500 
+    END , 
+    desempenio  =  CASE 
+        WHEN  v . ventas_totales  >  p . promedio_ventas  THEN  'Sobre el promedio' 
+        ELSE  'Debajo del promedio' 
+    END 
+FROM  ventas_por_empleado v
+ CROSS  JOIN  promedios p
+ WHERE  e . id  =  v . empleado_id ; 
+
+6. ACTUALIZACIÓN CON REGRESO
+Obtener Datos Actualizados
+SQL
+
+-- Obtener filas actualizadas 
+UPDATE  productos 
+ SET  precio  =  precio  *  1.10 
+WHERE  categoria  =  'Electrónica' 
+RETURNING  id ,  nombre ,  precio  AS  nuevo_precio ; 
+
+-- Usar en expresiones 
+UPDATE  empleados 
+ SET  
+    salario  =  salario  *  1.05 , 
+    fecha_aumento  =  CURRENT_DATE 
+WHERE  departamento  =  'Ventas' 
+RETURNING  
+    id , 
+    nombre , 
+    salario  AS  salario_nuevo , 
+    salario  /  1.05  AS  salario_anterior , 
+    ( salario  /  1.05  *  0.05 )  AS  aumento_monto ; 
+
+-- Con JOINs 
+UPDATE  pedidos p
+ SET  estado  =  'completado' 
+FROM  clientes c
+ WHERE  p . cliente_id  =  c . id
+ AND  c . pais  =  'España' 
+AND  p . estado  =  'pendiente' 
+RETURNING  
+    p . id , 
+    p . numero_pedido , 
+    c . nombre  AS  cliente , 
+    p . total ; 
+
+-- Para auditoría 
+UPDATE  usuarios 
+ SET  
+    ultimo_login  =  CURRENT_TIMESTAMP , 
+    contador_intentos  =  0 
+WHERE  username  =  'admin' 
+RETURNING  
+    id , 
+    username , 
+    ultimo_login , 
+    'Login exitoso'  AS  evento
+ INTO  TEMP  auditoria_login ; 
+
+Ejemplo Práctico con RETURNING
+SQL
+
+-- Sistema de inventario con auditoría 
+WITH  productos_actualizados  AS  ( 
+    UPDATE  inventario 
+     SET  
+        stock  =  stock  -  1 , 
+        ultima_salida  =  CURRENT_TIMESTAMP , 
+        total_salidas  =  total_salidas  +  1 
+    WHERE  producto_id  =  100 
+    AND  stock  >  0 
+    RETURNING  
+        producto_id , 
+        stock  AS  nuevo_stock , 
+        ( SELECT  nombre  FROM  productos  WHERE  id  =  100 )  AS  producto_nombre
+ ) 
+INSERT  INTO  auditoria_inventario  ( 
+    producto_id , 
+    accion , 
+    cantidad , 
+    stock_despues , 
+    fecha
+ ) 
+SELECT  
+    producto_id , 
+    'VENTA' , 
+    1 , 
+    nuevo_stock , 
+    CURRENT_TIMESTAMP 
+FROM  productos_actualizados
+ RETURNING  id  AS  auditoria_id ; 
+
+7. USO DE TRIGGERS CON UPDATE
+Triggers para Auditoría
+SQL
+
+-- Crear tabla de auditoría 
+CREATE  TABLE  auditoria_empleados  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    empleado_id  INT  NOT  NULL , 
+    campo_modificado  VARCHAR ( 50 ) , 
+    valor_anterior  TEXT , 
+    valor_nuevo  TEXT , 
+    usuario_modificacion  VARCHAR ( 100 ) , 
+    fecha_modificacion  TIMESTAMP  DEFAULT  CURRENT_TIMESTAMP 
+) ; 
+
+-- Función del trigger 
+CREATE  OR  REPLACE  FUNCTION  auditar_cambios_empleados ( ) 
+RETURNS  TRIGGER  AS  $$
+ BEGIN 
+    IF  OLD . salario  !=  NEW . salario  THEN 
+        INSERT  INTO  auditoria_empleados  ( 
+            empleado_id , 
+            campo_modificado , 
+            valor_anterior , 
+            valor_nuevo , 
+            usuario_modificacion
+         )  VALUES  ( 
+            OLD . id , 
+            'salario' , 
+            OLD . salario:: TEXT , 
+            NEW . salario:: TEXT , 
+            CURRENT_USER 
+        ) ; 
+    END  IF ; 
+    
+    IF  OLD . departamento_id  !=  NEW . departamento_id  THEN 
+        INSERT  INTO  auditoria_empleados  ( 
+            empleado_id , 
+            campo_modificado , 
+            valor_anterior , 
+            valor_nuevo , 
+            usuario_modificacion
+         )  VALUES  ( 
+            OLD . id , 
+            'departamento_id' , 
+            OLD . departamento_id:: TEXT , 
+            NEW . departamento_id:: TEXT , 
+            CURRENT_USER 
+        ) ; 
+    END  IF ; 
+    
+    RETURN  NEW ; 
+END ; 
+$$  LANGUAGE  plpgsql ; 
+
+-- Crear trigger 
+CREATE  TRIGGER  trigger_auditar_empleados
+BEFORE  UPDATE  ON  empleados
+ FOR EACH ROW 
+EXECUTE  FUNCTION  auditar_cambios_empleados ( ) ; 
+
+Trigger para Validación
+SQL
+
+-- Validar que el salario no disminuya 
+CREATE  OR  REPLACE  FUNCTION  validar_aumento_salario ( ) 
+RETURNS  TRIGGER  AS  $$
+ BEGIN 
+    IF  NEW . salario  <  OLD . salario  THEN 
+        RAISE EXCEPTION  'El salario no puede disminuir. Actual: %, Nuevo: %' ,  
+            OLD . salario ,  NEW . salario ; 
+    END  IF ; 
+    
+    -- Validar aumento máximo del 20% 
+    IF  NEW . salario  >  OLD . salario  *  1.20  THEN 
+        RAISE EXCEPTION  'El aumento no puede superar el 20%%' ; 
+    END  IF ; 
+    
+    RETURN  NEW ; 
+END ; 
+$$  LANGUAGE  plpgsql ; 
+
+CREATE  TRIGGER  trigger_validar_salario
+BEFORE  UPDATE  ON  empleados
+ FOR EACH ROW 
+EXECUTE  FUNCTION  validar_aumento_salario ( ) ; 
+
+Trigger para Mantener Histórico
+SQL
+
+-- Tabla histórica 
+CREATE  TABLE  productos_historico  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    producto_id  INT  NOT  NULL , 
+    precio_anterior  DECIMAL ( 10 , 2 ) , 
+    precio_nuevo  DECIMAL ( 10 , 2 ) , 
+    usuario_cambio  VARCHAR ( 100 ) , 
+    fecha_cambio  TIMESTAMP  DEFAULT  CURRENT_TIMESTAMP 
+) ; 
+
+-- Trigger para histórico de precios 
+CREATE  OR  REPLACE  FUNCTION  guardar_historico_precios ( ) 
+RETURNS  TRIGGER  AS  $$
+ BEGIN 
+    IF  OLD . precio  !=  NEW . precio  THEN 
+        INSERT  INTO  productos_historico  ( 
+            producto_id , 
+            precio_anterior , 
+            precio_nuevo , 
+            usuario_cambio
+         )  VALUES  ( 
+            OLD . id , 
+            OLD . precio , 
+            NEW . precio , 
+            CURRENT_USER 
+        ) ; 
+    END  IF ; 
+    
+    RETURN  NEW ; 
+END ; 
+$$  LANGUAGE  plpgsql ; 
+
+CREATE  TRIGGER  trigger_historico_precios
+ AFTER  UPDATE  ON  productos
+ FOR EACH ROW 
+EXECUTE  FUNCTION  guardar_historico_precios ( ) ; 
+
+8. BUENAS PRÁCTICAS
+Seguridad y Validación
+SQL
+
+-- ❌ PELIGROSO: Sin WHERE (actualiza todo) 
+UPDATE  usuarios  SET  activo  =  true ; 
+
+-- ✅ SEGURO: Siempre con WHERE 
+UPDATE  usuarios  SET  activo  =  true  WHERE  id  =  1 ; 
+
+-- ❌ PELIGROSO: SQL Injection vulnerable 
+UPDATE  productos  SET  precio  =  100  WHERE  nombre  =  '$nombre' ; 
+
+-- ✅ SEGURO: Usar parámetros 
+-- En Python: cursor.execute("UPDATE productos SET precio = %s WHERE nombre = %s", (100, nombre)) 
+
+-- ✅ Validar antes de actualizar 
+BEGIN ; 
+-- Verificar existencia primero 
+SELECT  id  FROM  productos  WHERE  id  =  100  FOR  UPDATE ; 
+
+-- Luego actualizar 
+UPDATE  productos  SET  precio  =  150  WHERE  id  =  100 ; 
+COMMIT ; 
+
+Rendimiento
+SQL
+
+-- ❌ INEFICIENTE: Actualización fila por fila en bucle 
+FOR  id  IN  ( SELECT  id  FROM  productos  WHERE  stock  <  10 )  LOOP 
+    UPDATE  productos  SET  necesita_reposicion  =  true  WHERE  id  =  id ; 
+END  LOOP ; 
+
+-- ✅ EFICIENTE: Actualización masiva 
+UPDATE  productos 
+ SET  necesita_reposicion  =  true  
+WHERE  stock  <  10 ; 
+
+-- ❌ LENTO: Sin índice en columna WHERE 
+UPDATE  ventas  SET  procesado  =  true  WHERE  fecha  =  '2024-01-15' ; 
+-- Necesita: CREATE INDEX idx_ventas_fecha ON ventas(fecha); 
+
+-- ✅ RÁPIDO: Con índice apropiado 
+UPDATE  ventas  SET  procesado  =  true  
+WHERE  id  IN  ( 
+    SELECT  id  FROM  ventas 
+     WHERE  fecha  =  '2024-01-15' 
+    LIMIT  1000 
+) ; 
+
+Concurrencia y Bloqueos
+SQL
+
+-- ❌ PROBLEMA: Bloqueo prolongado de tabla 
+UPDATE  productos  SET  precio  =  precio  *  1.10 ; 
+-- Bloquea TODA la tabla durante la operación 
+
+-- ✅ SOLUCIÓN: Actualizar en lotes 
+DO  $$
+ DECLARE 
+    batch_size  INT  : =  1000 ; 
+    last_id  INT  : =  0 ; 
+    rows_updated  INT ; 
+BEGIN 
+    LOOP 
+        UPDATE  productos 
+         SET  precio  =  precio  *  1.10 
+        WHERE  id  >  last_id
+         AND  id  <=  last_id  +  batch_size ; 
+        
+        GET DIAGNOSTICS rows_updated  =  ROW_COUNT ; 
+        EXIT  WHEN  rows_updated  =  0 ; 
+        
+        last_id : =  last_id  +  batch_size ; 
+        COMMIT ;   -- Liberar bloqueos periódicamente 
+    END  LOOP ; 
+END  $$ ; 
+
+-- ✅ USAR: FOR UPDATE SKIP LOCKED para evitar deadlocks 
+UPDATE  pedidos 
+ SET  estado  =  'procesando' 
+WHERE  id  IN  ( 
+    SELECT  id 
+     FROM  pedidos 
+     WHERE  estado  =  'pendiente' 
+    ORDER  BY  prioridad  DESC ,  fecha_pedido
+     LIMIT  100 
+    FOR  UPDATE  SKIP LOCKED
+ ) ; 
+
+Mantenibilidad
+SQL
+
+-- ❌ CONFUSO: Actualización compleja en una línea 
+UPDATE  t  SET  a = b , b = c , c = a  WHERE  x = y  AND  ( z > 5  OR  z < 0 )  AND  NOT  w  IS  NULL ; 
+
+-- ✅ CLARO: Separar y comentar 
+UPDATE  productos 
+ SET  
+    -- Aplicar descuento del 15% 
+    precio  =  precio  *  0.85 , 
+    -- Marcar como en oferta 
+    en_oferta  =  true , 
+    -- Actualizar fecha de cambio de precio 
+    fecha_ultimo_cambio_precio  =  CURRENT_DATE 
+WHERE  
+    -- Solo productos de estas categorías 
+    categoria  IN  ( 'Electrónica' ,  'Hogar' ) 
+    -- Con stock disponible 
+    AND  stock  >  0 
+    -- Que no estén ya en oferta 
+    AND  en_oferta  =  false 
+    -- Y tengan más de 3 meses sin cambios 
+    AND  ( fecha_ultimo_cambio_precio  IS  NULL  
+         OR  fecha_ultimo_cambio_precio  <  CURRENT_DATE  -  INTERVAL  '3 months' ) ; 
+
+9. EJEMPLOS CON PYTHON
+Clase Base para Actualización de Datos
+pitón
+
+importar  psycopg2
+ desde  psycopg2  importar  sql
+ de  psycopg2  .  extras  importar  execute_batch
+ desde  escribir  importar  Lista  ,  Diccionario  ,  Cualquiera  ,  Opcional  ,  Tupla
+  de importación registro 
+
+ clase   PostgreSQLUpdater  : 
+     def   __init__  (  self  ,  parámetros_de_conexión  )  : 
+        self  .  parámetros_de_conexión  =  parámetros_de_conexión
+        self  .  conn  =   Ninguno 
+        self.logger  __  logging.getLogger  =  "  def  (  name__  self  ) 
+    
+     (   connect  )  try  "  : 
+         """Establecer conexión 
+         :  " 
+            self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.parámetros_de_conexión ​ ​  ) 
+            ser  .  registrador  .  info  (  "Conexión establecida"  ) 
+             return  self  .  conectar
+         excepto  Excepción  como  e  : 
+            ser  .  registrador  .  error  (  f"Error de conexión:  {  e  }  "  ) 
+             plantear 
+    
+     def   desconectar  (  self  )  : 
+         """Cerrar conexión""" 
+         if  self  .  conexión  : 
+            auto  .  conexión  .  cerrar  (  ) 
+            self  .  logger  .  info  (  "Conexión cerrada"  ) 
+    
+     def   update_single  (  self  ,  table  :   str  ,  data  :  Dict  ,  condition  :  Dict  )   -  >   int  : 
+         """Actualizar un solo registro""" 
+         if   not  self  .  conn  : 
+            self.connect ​ ​  (  ) 
+        
+         try  : 
+             con  self.conn.cursor ​ ​  SET  cursor  (  )   como  Construir  : 
+                 # 
+                cláusulas_conjunto  =   [  ] 
+                establecer_valores  =  [  ] 
+                 para  clave  ,  valor  en  datos.items ​ ​  (  )  : 
+                    set_clauses  .append  (  "  f"  {  clave  }  = %s  ) 
+                    set_values  ​​.  append  (  valor  ) 
+                
+                 # Construir WHERE 
+                donde_cláusulas  =   [  ] 
+                where_values  ​​=   [  ] 
+                 para  clave  ,  valor  en  condición.items ​ ​  (  )  : 
+                    cláusulas_donde  .append  "  (  f"  {  clave  }  = %s  ) 
+                    donde_valores  .  append  (  valor  ) 
+                
+                 # Construir consulta completa 
+                consulta  =  sql  .  SQL  (  """
+                    ACTUALIZAR {tabla}
+                    SET {cláusula_establecida}
+                    DÓNDE {cláusula_donde}
+                """  )  .  formato  ( 
+                    tabla  =  sql  .  Identificador  (  tabla  )  , 
+                    set_clause  =  sql  .  SQL  (  ', '  )  .  join  (  [  sql  .  SQL  (  cláusula  )   para  cláusula  en  set_clauses  ]  )  , 
+                    where_clause  =  sql  .  SQL  (  ' AND '  )  .  join  (  [  sql  .  SQL  (  clause  )   for  clause  in  where_clauses  ]  ) 
+                 ) 
+                
+                 # Ejecutar con todos los valores 
+                todos_valores  =  establecer_valores  +  donde_valores
+                cursor  .execute ​  (  consulta  ,  todos_valores  ) 
+                
+                filas_afectadas  =  cursor .  recuento de filas
+                auto  .  conexión  .  confirmación  (  ) 
+                
+                self.logger.info  "  :  (  Filas  }  f  {  rows_affected  "  )  actualizadas 
+                 return  rows_affected
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            ser  .  registrador  .  error  (  f"Error al actualizar:  {  e  }  "  ) 
+             rise 
+    
+     def   update_batch  (  self  ,  table  :   str  ,  actualizaciones  :  List  [  Tuple  [  Dict  ,  Dict  ]  ]  )   -  >   int  : 
+         """Actualizar múltiples registros con diferentes condiciones""" 
+         if   not  self  .  conexión  : 
+            yo  .  conectar  (  ) 
+        
+        total_updated  =   0 
+        
+         try  : 
+             with  self  .  conn  .  cursor  (  )   as  cursor  : 
+                 for  data  ,  condition  in  updates  : 
+                     # Similar a update_single pero en batch 
+                    set_clauses  =   [  f"  {  k  }  = %s"   para  k  en  datos  .  keys  (  )  ] 
+                    donde_cláusulas  =   [  f"  {  k  }  = %s"   para  k  en  condición  .  keys  (  )  ] 
+                    
+                    consulta  =   f"""
+                        ACTUALIZAR  {  tabla  } 
+                        SET  {  ', '  .  join  (  set_clauses  )  } 
+                        DONDE  {  ' Y '  .  unir  (  cláusulas_donde  )  } 
+                    """ 
+                    
+                    valores =   lista  (  datos.valores ​ ​  (  )  )   +   lista  (  condiciones.valores ​ ​  (  )  ) 
+                    cursor  .execute ​  (  consulta  ,  valores  ) 
+                    total_actualizado  +=  cursor  .  recuento_de_filas
+                
+                auto  .  conexión  .  confirmación  (  ) 
+                ser  .  registrador  .  info  (  f"Total filas actualizadas en lote:  {  total_updated  }  "  ) 
+                 return  total_updated
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            self  .  logger  .  error  (  f"Error en actualización batch:  {  e  }  "  ) 
+             raise 
+    
+     def   update_with_join  (  self  ,  update_query  :   str  ,  params  :  Tuple  =   None  )   -  >   int  : 
+         """Ejecutar UPDATE complejo con JOINs""" 
+         if   not  self  .  conn  : 
+            self.connect ​ ​  (  ) 
+        
+         intenta  : 
+             con  self.conn.cursor ​ ​ ​  cursor  (  )   como ​  : 
+                cursor  .execute ​  (  update_query  ,  params  o   (  )  ) 
+                filas_afectadas  =  cursor  .  rowcount
+                auto  .  conexión  .  confirmación  (  ) 
+                
+                self  .  logger  .  info  (  f"UPDATE con JOIN - Filas afectadas:  {  rows_affected  }  "  ) 
+                 return  rows_affected
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            ser .  logger  .  error  (  f"Error en UPDATE con JOIN:  {  e  }  "  ) 
+             raise 
+    
+     def   update_and_return  (  self  ,  table  :   str  ,  data  :  Dict  ,  condition  :  Dict  )   -  >  List  [  Dict  ]  : 
+         """UPDATE con RETURNING para obtener datos actualizados""" 
+         if   not  self  .  conn  : 
+            self.connect ​ ​  (  ) 
+        
+         try  : 
+             con  self.conn.cursor ​ ​  SET  cursor  (  )   como  Construir  : 
+                 # 
+                cláusulas_conjunto  =   [  ] 
+                set_values  ​​=   [  ] 
+                 para  clave  ,  valor  en  datos.items ​ ​  (  )  : 
+                    set_clauses  .append  (  "  f"  {  clave  }  = %s  ) 
+                    set_values  ​​.  append  (  valor  ) 
+                
+                 # Construir WHERE 
+                donde_cláusulas  =   [  ] 
+                where_values  ​​=   [  ] 
+                 para  clave  ,  valor  en  condición.items ​ ​  (  )  : 
+                    cláusulas_donde  .append  "  (  f"  {  clave  }  = %s  ) 
+                    where_values  ​​.  append  (  valor  ) 
+                
+                 # Construir consulta con RETURNING 
+                consulta  =  sql  .  SQL  (  """
+                    ACTUALIZAR {tabla}
+                    SET {cláusula_establecida}
+                    DÓNDE {cláusula_donde}
+                    REGRESO *
+                """  )  .  formato  ( 
+                    tabla  =  sql  .  Identificador  (  tabla  )  , 
+                    cláusula_de_establecimiento =  sql  .  SQL  (  ', '  )  .  join  (  [  sql  .  SQL  (  cláusula  )   para  cláusula  en  set_clauses  ]  )  , 
+                    cláusula_donde  =  sql  .  SQL  (  ' AND '  )  .  join  (  [  sql  .  SQL  (  cláusula  )   for  cláusula  in  cláusulas_donde  ]  ) 
+                 ) 
+                
+                 # Ejecutar 
+                todos_valores  =  establecer_valores  +  donde_valores
+                cursor  .  ejecutar  (  consulta  ,  todos_valores  ) 
+                
+                 # Obtener resultados 
+                column_names  =   [  desc  [  0  ]   para  desc  en  cursor  .  descripción  ] 
+                resultados  =   [ 
+                     dict  (  zip  (  nombres_de_columna  ,  fila  )  ) 
+                     para  fila  en  cursor.fetchall  el  )  (  ] 
+                 la 
+                
+                auto  .  conexión  .  confirmación  (  ) 
+                self  .  logger  .  info  (  f"ACTUALIZAR con RETORNANDO -  {  len  (  resultados  )  }  filas retornadas"  ) 
+                 devolver  resultados
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            ser  .  registrador  .  error  (  f"Error en UPDATE con RETURNING:  {  e  }  "  ) 
+             rise 
+    
+     def   safe_update  (  self  ,  table  :   str  ,  data  :  Dict  ,  condition  :  Dict  )   -  >  Dict  : 
+         """UPDATE seguro con validaciones y manejo de errores""" 
+         if   not  self  .  conexión  : 
+            ser  .  conectar  (  ) 
+        
+         intentar  : 
+             con  uno mismo  .  conexión  .  cursor  (  )   as  cursor  : 
+                 # 1. Verificar que existen registros que cumplen la condición 
+                check_query  =   f"SELECCIONAR CONTAR(*) DE  {  tabla  }  DONDE " 
+                check_query  +=   " AND "  .  join  (  [  f"  {  k  }  = %s"   para  k  en  la condición  .  keys  (  )  ]  ) 
+                
+                cursor  .execute ​  (  check_query  ,   list  (  condition.values  ( ​ ​  )  )  ) 
+                cuenta  =  cursor  .  fetchone  (  )  [  0  ] 
+                
+                 if  count  ==   0  : 
+                     return   { 
+                         'success'  :   False  , 
+                         'message'  :   'No se encontraron registros para actualizar'  , 
+                         'rows_affected'  :   0 
+                     } 
+                
+                 # 2. Ejecutar UPDATE 
+                set_clauses  =   [  f"  {  k  }  = %s"   para  k  en  datos  .  keys  (  )  ] 
+                donde_cláusulas  =   [  f"  {  k  }  = %s"   para  k  en  condición  .  keys  (  )  ] 
+                
+                consulta_de_actualización  =   f"""
+                    ACTUALIZAR  {  tabla  } 
+                    SET  {  ', '  .  join  (  set_clauses  )  } 
+                    DONDE  {  ' Y '  .  unir  (  cláusulas_donde  )  } 
+                """ 
+                
+                all_values  ​​=   lista  (  datos.valores ​ ​  (  )  )   +   lista  (  condiciones.valores ​ ​  (  )  ) 
+                cursor  .execute ​  (  actualizar_consulta  ,  todos_valores  ) 
+                
+                filas_afectadas  =  cursor  .  rowcount
+                auto  .  conexión  .  compromiso (  ) 
+                
+                 devolver   { 
+                     'éxito'  :   Verdadero  , 
+                     'mensaje'  :   actualizados  f'Registros {  rows_affected  }  '  , 
+                     'rows_affected'  :  filas_affectadas
+                 } 
+                
+         excepto  psycopg2.IntegrityError   IntegrityError  como  e : 
+            self  .  conn  .  rollback  (  ) 
+             return   { 
+                 'success'  :   False  , 
+                 'message'  :   'Error de integridad de datos'  , 
+                 'error'  :   str  (  e  )  , 
+                 'rows_affected'  :   0 
+             } 
+         except  Exception  as  e  : 
+            self.conn.rollback  :  ,  __name__  (  )  : 
+             return   { 
+                 'success'  False   ,  ' 
+                 message'  '   Error al actualizar'  ' 
+                 error'  :   str  (  e  )  , 
+                 'rows_affected'  0   } 
+             # 
+
+ Ejemplo de uso 
+ if  :  ==   "__main__"  : 
+     # Configuración 
+    config  =   { 
+         'dbname'  :   'empresa_db'  , 
+         'user'  :   'admin'  , 
+         'senha'  :   'senha'  , 
+         'host'  :   'localhost' 
+     } 
+    
+     # Configurar el registro 
+    logging.basicConfig   basicConfig (  nivel  =  log.INFO .INFO) 
+    
+    actualizador  =  PostgreSQLUpdater  (  config  ) 
+    actualizador  .  connect  (  ) 
+    
+     # 1. Actualizar un empleado 
+    filas  =  actualizador  .  update_single  ( 
+        tabla  =  'empleados'  , 
+        data  =  { 
+             'salario'  :   55000  , 
+             'departamento'  :   'Ventas Senior'  , 
+             'fecha_promocion'  :   '2024-01-20' 
+         }  , 
+        condición  =  {  'id'  :   1  } 
+     ) 
+     print  (  f"Empleado actualizado:  {  filas  }  fila(s)"  ) 
+    
+     # 2. Actualizar lote 
+    actualizaciones =  [ 
+        ( 
+            { 'precio' :  19.99 ,  'en_oferta' :  True } , 
+            { 'id' :  10 ,  'categoria' :  'Electrónica' } 
+        ) , 
+        ( 
+            { 'precio' :  29.99 ,  'en_oferta' :  True } , 
+            { 'id' :  11 ,  'categoria' :  'Electrónica' } 
+        ) , 
+        ( 
+            { 'stock' :  0 ,  'activo' :  False } , 
+            { 'id' :  15 ,  'stock' :  1 } 
+        ) 
+    ] 
+    
+    total  =  updater . update_batch ( 'productos' ,  updates ) 
+    print ( f"Total actualizado en batch:  { total } " ) 
+    
+    # 3. UPDATE con JOIN complejo 
+    join_query  =  """
+        UPDATE pedidos p
+        SET 
+            estado = 'completado',
+            fecha_completado = CURRENT_TIMESTAMP
+        FROM clientes c
+        WHERE p.cliente_id = c.id
+        AND c.pais = 'España'
+        AND p.estado = 'pendiente'
+        AND p.fecha_pedido < CURRENT_DATE - INTERVAL '7 days'
+    """ 
+    
+    rows_join  =  updater . update_with_join ( join_query ) 
+    print ( f"Pedidos completados:  { rows_join } " ) 
+    
+    # 4. UPDATE con RETURNING 
+    resultados  =  updater . update_and_return ( 
+        table = 'usuarios' , 
+        data = { 
+            'ultimo_login' :  '2024-01-20 10:30:00' , 
+            'contador_logins' :  'contador_logins + 1' 
+        } , 
+        condition = { 'id' :  1 } 
+    ) 
+    print ( f"Datos actualizados:  { resultados } " ) 
+    
+    # 5. UPDATE seguro 
+    resultado_seguro  =  updater . safe_update ( 
+        table = 'productos' , 
+        data = { 'precio' :  99.99 } , 
+        condition = { 'id' :  999 }   # ID que no existe 
+    ) 
+    print ( f"Resultado seguro:  { resultado_seguro } " ) 
+    
+    updater . disconnect ( ) 
+
+Ejemplo Avanzado: Sistema de Inventario
+pitón
+
+clase   InventoryManager  : 
+     def   __init__  (  self  ,  db_config  )  : 
+          mismo.db_config yo ​  =  db_config 
+        self  .  conn  =   None 
+    
+     def   update_stock_after_sale  (  self  ,  product_id  :   int  ,  amount  :   int  )   -  >  Dict  : 
+         """Actualizar stock después de una venta""" 
+         try  : 
+            self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.db_config ​ ​  ) 
+            ser  .  conexión  .  autocommit  =   False 
+            
+             con  self  .  conexión  .  cursor  (  )   as  cursor  : 
+                 # Bloquear el registro para evitar condiciones de carrera 
+                cursor  .ejecutar  (  "  ""
+                    SELECCIONAR stock, stock_minimo 
+                    DE productos 
+                    DONDE id = %s PARA ACTUALIZAR
+                """  ,   (  id_del_producto  ,  )  ) 
+                
+                result  =  cursor  .  fetchone  (  ) 
+                 if   not  result  : 
+                     raise  ValueError  (  f"Producto  {  product_id  }  no encontrado"  ) 
+                
+                stock_actual  ,  stock_mín  =  resultado
+                
+                 # Verificar stock suficiente 
+                 if  current_stock  <  amount  : 
+                     raise  ValueError  (  f"Stock insuficiente. Disponible:  {  current_stock  }  "  ) 
+                
+                 # Actualizar stock 
+                nuevo_stock =  current_stock  -  quantity
+                cursor . execute ( """
+                    UPDATE productos 
+                    SET 
+                        stock = %s,
+                        fecha_ultima_salida = CURRENT_TIMESTAMP,
+                        total_vendido = total_vendido + %s
+                    WHERE id = %s
+                    RETURNING id, nombre, stock
+                """ ,  ( new_stock ,  quantity ,  product_id ) ) 
+                
+                updated_product  =  cursor . fetchone ( ) 
+                
+                # Registrar en historial 
+                cursor . execute ( """
+                    INSERT INTO historial_stock (
+                        producto_id,
+                        tipo_movimiento,
+                        cantidad,
+                        stock_despues,
+                        motivo
+                    ) VALUES (%s, %s, %s, %s, %s)
+                """ ,  ( product_id ,  'VENTA' ,  - quantity ,  new_stock ,  'Venta normal' ) ) 
+                
+                # Verificar si necesita reposición 
+                if  new_stock  <  min_stock : 
+                    cursor . execute (  """
+                        INSERTAR EN alertas_reposicion (
+                            producto_id,
+                            stock_actual,
+                            stock_minimo,
+                            fecha_alerta
+                        ) VALORES (%s, %s, %s, MARCA_DE_TIEMPO_ACTUAL)
+                        EN CONFLICTO (producto_id) ACTUALIZAR CONJUNTO
+                            fecha_alerta = CURRENT_TIMESTAMP
+                    """  ,   (  id_producto  ,  nuevo_stock  ,  stock_mín  )  ) 
+                
+                self.conn.commit  :  [  1  2  (  ) 
+                
+                 return   { 
+                     success'  :   True  , 
+                     'product_id'  :  updated_product  0  ,  ]  , 
+                     'product_name'  updated_product  [  ]  new_stock  '  ' 
+                     '  updated_product  [  :  ]  ,  ' 
+                     message'  :   actualizado correctamente' 
+                 } 
+                
+         except  Exception  as  e  : 
+             if  self.conn  Stock  :  ' 
+                self.conn.rollback  '  self.conn  :  (  (  ) 
+             return   { 
+                 success'  False   ,  ' 
+                 error'  :   str  )  e  '  , 
+                 'message'  :   al actualizar 
+             } 
+         finally  : 
+             if  '  :  Error  stock 
+                ser  .  conexión  .  close  (  ) 
+    
+     def   Bulk_price_update  (  self  ,  actualizaciones  :  Lista  [  Dict  ]  ,  porcentaje  :   float  )   -  >  Dict  : 
+         """Actualización masiva de precios""" 
+        intentar  : 
+            ser  .  conexión  =  psicopg2  .  connect  (  **  self.db_config  para  self  ) 
+            
+             # Usar transacción 
+             con  consistencia  .  conexión  .  cursor  (  )   como  cursor  : 
+                 # Crear tabla temporal 
+                cursor  .ejecutar  (  "  ""
+                    CREAR TABLA TEMPORAL temp_price_updates (
+                        product_id INT CLAVE PRINCIPAL,
+                        nuevo_precio DECIMAL(10,2)
+                    ) AL COMPROBAR Y SOLTAR
+                """  ) 
+                
+                 # Insertar datos temporales 
+                insert_data  =   [  (  u  [  'id'  ]  ,  u  [  'current_price'  ]   *   (  1   +  porcentaje  /  100  )  )  
+                               para  u  en  actualizaciones  ] 
+                
+                ejecutar_lote  (  cursor  ,   """
+                    INSERTAR EN temp_price_updates (id_producto, nuevo_precio)
+                    VALORES (%s, %s)
+                    EN CONFLICTO (product_id) ACTUALIZAR CONJUNTO
+                        nuevo_precio = EXCLUIDO.nuevo_precio
+                """  ,  insert_data  ) 
+                
+                 # Actualizar productos usando JOIN 
+                cursor  .ejecutar  (  "  ""
+                    CON AS actualizado (
+                        ACTUALIZACIÓN productos p
+                        COLOCAR 
+                            precio = t.nuevo_precio,
+                            fecha_ultimo_cambio_precio = CURRENT_TIMESTAMP
+                        DESDE actualizaciones_de_precios_temp
+                        DONDE p.id = t.product_id
+                        DEVOLVIENDO p.id, p.nombre, p.precio como old_price, t.new_price
+                    )
+                    INSERTAR EN precios_historico (
+                        producto_id,
+                        precio_anterior,
+                        precio_nuevo,
+                        porcentaje_cambio,
+                        usuario
+                    )
+                    SELECCIONAR 
+                        identificación,
+                        precio_antiguo,
+                        nuevo_precio,
+                        ((precio_nuevo - precio_anterior) / precio_anterior * 100),
+                        USUARIO ACTUAL
+                    DESDE actualizado
+                """ ) 
+                
+                filas_afectadas  =  cursor  .  rowcount
+                self.conn.commit  f'Precios  self.conn  :  {  (  ) 
+                
+                 return   { 
+                     'success'  True   ,  ' 
+                     rows_updated'  ,  '  message 
+                     :  actualizados   :  rows_affected  }  productos  ' 
+                 } 
+                
+         except  Exception  as  e  : 
+             if  rows_affected  :  :  ' 
+                self.conn.rollback  )  :  :  (  )  ' 
+             return   { 
+                 éxito  :   Falso  , 
+                 error  :   str  (  e  '  , 
+                 filas_actualizadas  '   0 
+             } 
+         finalmente  ' 
+             si  self.conn  :  '  ' 
+                ser  .  conexión  .  close  (  ) 
+
+ # Uso del sistema de inventario 
+ if  __name__  ==   "__main__"  : 
+    db_config  =   { 
+         'dbname'  :   'inventario_db'  , 
+         'usuario'  :   'admin'  , 
+         'contraseña'  :   'contraseña'  , 
+         'host'  :   'localhost' 
+     } 
+    
+    manager  =  InventoryManager  (  db_config  ) 
+    
+     # Actualizar stock después de la venta 
+    resultado  =  manager  .actualizar_stock_postventa ​  ( 
+        id_del_producto  =  1  , 
+        cantidad  =  2 
+     ) 
+     print  (  f"Resultado venta:  {  resultado  }  "  ) 
+    
+     # Actualización masiva de precios 
+    productos_a_actualizar  =   [ 
+         {  'id'  :   1  ,   'precio_actual'  :   100  }  , 
+         {  'id'  :   2  ,   'precio_actual'  :   50  }  , 
+         {  'id'  :   3  ,   'precio_actual'  :   75  } 
+     ] 
+    
+    resultado_actualizar  =  manager.update_precio_masivo ​  ( ​ 
+        actualizaciones  =  productos_a_actualizar  , 
+        porcentaje = 10   # Aumento del 10% 
+    ) 
+    print ( f"Resultado actualización precios:  { update_result } " ) 
+
+Sistema de Actualización con Reintentos
+pitón
+
+ de importación tiempo 
+ desde  escribir  importar  Callable
+
+ clase   RetryUpdateManager  : 
+     def   __init__  (  self  ,  db_config  ,  max_retries  =  3  ,  retry_delay  =  1  )  : 
+          mismo.db_config yo ​  =  db_config 
+        self  .max_retries ​  =  max_retries 
+        self.retry_delay ​ ​  =  retraso_de_retry 
+    
+     def   execute_with_retry  (  self  ,  update_func  :  Callable  ,   *  args  ,   **  kwargs  )   -  >  Dict  : 
+         "Ejecutar UPDATE con reintentos en caso de interbloqueo""" 
+         range  (  self.max_retries   )  :  try  and  for  :  return 
+             update_func  ( 
+                 *  args  ,  **  kwargs  )   except  psycopg2.OperationalError  as 
+                
+             e  :  in  )  if  '  interbloqueo 
+                 '   str   (   e  .lower  (  attempt  )  {  <  attempt   :  self.max_retries  -  1  in  "  (   print  f 
+                     "  Interbloqueo  (Intento  )  attempt  +   1  }  /  {  self.max_retries  }  )  reintentando ...  detectado  , 
+                    tiempo  .  dormir  (  self  .  retry_delay  *   (  intento  +   1  )  )    # Retroceso exponencial 
+                     continuar 
+                 else  : 
+                     rise 
+    
+     def   concurrent_update_example  (  self  ,  product_id  :   int  )   -  >  Dict  : 
+         """Ejemplo de actualización concurrente segura""" 
+         def   update_product  (  )  : 
+            conn  =  psycopg2  .  connect  (  **  self  .  db_config  ) 
+             try  : 
+                 with  conn  .  cursor  (  )   as  cursor  : 
+                     # Usar NOWAIT para evitar bloqueos largos 
+                    cursor .  ejecutar  (  """
+                        SELECCIONAR * DE productos 
+                        DONDE id = %s PARA ACTUALIZAR AHORA ESPERA
+                    """  ,   (  product_id  ,  )  ) 
+                    
+                     # Actualizar con verificación de versión 
+                    cursor  .ejecutar  (  "  ""
+                        ACTUALIZAR productos 
+                        COLOCAR 
+                            stock = stock - 1,
+                            versión = versión + 1,
+                            ultima_actualizacion = CURRENT_TIMESTAMP
+                        DONDE id = %s Y versión = %s
+                        DEVOLUCIÓN de stock, versión
+                    """  ,   (  product_id  ,  kwargs  .  get  (  'current_version'  ,   0  )  )  ) 
+                    
+                     if  cursor  .  rowcount  ==   0  : 
+                         rise  Exception  (  "El registro fue modificado por otro proceso"  ) 
+                    
+                    resultado  =  cursor  .  fetchone  (  ) 
+                    conn.commit  )  [  (  ' 
+                    
+                     return   { 
+                         success'  :   True  , 
+                         'new_stock'  :  resultado  ]  0  '  , 
+                         new_version'  :  resultado  [  1  ] 
+                     } 
+                    
+             finally  : 
+                conn.close ​  (  )  ) 
+        
+         return  self.execute_with_retry  con  Uso  (  update_product  # 
+
+ reintentos 
+si  __nombre__  ==   "__principal__"  : 
+    db_config  =   { 
+         'dbname'  :   'concurrent_db'  , 
+         'usuario'  :   'admin'  , 
+         'contraseña'  :   'contraseña'  , 
+         'host'  :   'localhost' 
+     } 
+    
+    retry_manager  =  RetryUpdateManager  (  db_config  ) 
+    
+     intentar  : 
+        resultado  =  retry_manager  .  concurrent_update_example  (  product_id  =  1  ) 
+         print  (  f"Actualización exitosa:  {  result  }  "  ) 
+     excepto  Excepción  como  e  : 
+         print  (  f"Error después de reintentos:  {  e  }  "  ) 
+
+EJERCICIOS PRÁCTICOS
+Nivel Básico:
+
+    Aumentar salarios un 5% a todos los empleados de un departamento
+
+    Actualizar estado de pedidos pendientes a "completado"
+
+    Corregir emails poniéndolos en minúsculas 
+
+Nivel Intermedio:
+
+    Actualizar precios basados en inflación usando JOIN con proveedores
+
+    Recalcular comisiones usando subconsultas y CASE
+
+    Sincronizar datos entre tablas relacionadas 
+
+Nivel Avanzado:
+
+    Implementar optimistic locking con columnas de versión
+
+    Batch update con control de concurrencia usando SKIP LOCKED
+
+    Sistema de historial que guarda cambios automáticamente con triggers 
+
+CONSEJOS FINALES
+Para Máximo Rendimiento:
+
+    Usa índices en columnas del WHERE
+
+    Actualiza en lotes grandes, no fila por fila
+
+    Evita actualizar columnas indexadas innecesariamente
+
+    Usa EXPLAIN ANALYZE para analizar el plan de ejecución 
+
+Para Seguridad:
+
+    Siempre usa WHERE específico
+
+    Usa transacciones para operaciones atómicas
+
+    Implementa validaciones en la aplicación y en la base de datos
+
+    Mantén backups antes de actualizaciones masivas 
+
+Para Concurrencia:
+
+    Usa FOR UPDATE cuando necesites exclusividad
+
+    NOWAIT o SKIP LOCKED para evitar bloqueos.
+
+    Implementa optimistic locking con columnas de versión
+
+    Maneja deadlocks con reintentos exponenciales 
+
+Para Mantenibilidad:
+
+    Documenta updates complejos con comentarios
+
+    Usa RETURNING para verificar cambios
+
+    Implementa auditoría de cambios importantes
+
+    Prueba en staging antes de producción 
+
+¿Te gustaría profundizar en algún aspecto específico de UPDATE? Por ejemplo:
+
+    Optimización de UPDATEs masivos (millones de registros)
+
+    Sistemas de versionado y historial completo
+
+    Replicación y sincronización entre bases de datos
+
+    UPDATE con datos JSON/JSONB avanzados 
+
+¡Continuemos fortaleciendo tus habilidades en PostgreSQL! 🚀 

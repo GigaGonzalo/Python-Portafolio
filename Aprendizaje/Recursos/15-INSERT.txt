@@ -1,0 +1,1296 @@
+📥 INSERT: Inserción de Datos en PostgreSQL
+
+El comando INSERT es fundamental para agregar nuevos registros a tus tablas. Vamos a explorarlo en profundidad, desde lo básico hasta técnicas avanzadas.
+ÍNDICE
+
+    Sintaxis Básica
+
+    Tipos de Inserción
+
+    Valores por Defecto
+
+    Inserción Múltiple
+
+    INSERTAR con SELECCIONAR
+
+    INSERTAR con RETORNO
+
+    UPSERT (INSERTAR SOBRE CONFLICTO)
+
+    Inserción desde Archivos
+
+    Buenas Prácticas
+
+    Ejemplos con Python 
+
+1. SINTAXIS BÁSICA
+Forma Estándar
+SQL
+
+-- Sintaxis básica 
+INSERT  INTO  nombre_tabla  ( columna1 ,  columna2 ,  . . . ) 
+VALUES  ( valor1 ,  valor2 ,  . . . ) ; 
+
+-- Ejemplo concreto 
+INSERT  INTO  clientes  ( nombre ,  email ,  telefono ,  fecha_registro ) 
+VALUES  ( 'Juan Pérez' ,  'juan@email.com' ,  '+34 600 123 456' ,  '2024-01-15' ) ; 
+
+Inserción Simplificada (cuando insertas en todas las columnas)
+SQL
+
+-- Si insertas valores para TODAS las columnas, en orden 
+INSERT  INTO  productos  VALUES  
+( 1 ,  'Laptop Dell' ,  999.99 ,  10 ,  'Electrónica' ,  CURRENT_TIMESTAMP ) ; 
+
+-- ⚠️ PELIGROSO: Si la estructura de la tabla cambia, esto fallará 
+
+Especificando Columnas Explícitamente (RECOMENDADO)
+SQL
+
+-- Forma segura y explícita 
+INSERT  INTO  empleados  ( 
+    nombre ,  
+    apellido ,  
+    email ,  
+    salario ,  
+    departamento_id , 
+    fecha_contratacion
+ )  VALUES  ( 
+    'María' ,  
+    'García' ,  
+    'maria@empresa.com' ,  
+    45000.00 ,  
+    3 , 
+    '2024-01-20' 
+) ; 
+
+2. TIPOS DE INSERCIÓN
+Inserción con Valores Literales
+SQL
+
+-- Valores directos 
+INSERT  INTO  productos  ( 
+    nombre ,  
+    descripcion ,  
+    precio ,  
+    stock , 
+    categoria
+ )  VALUES  ( 
+    'Mouse Gaming' ,  
+    'Mouse RGB con 6 botones programables' ,  
+    49.99 ,  
+    100 , 
+    'Periféricos' 
+) ; 
+
+Inserción con Expresiones
+SQL
+
+-- Usando funciones y expresiones 
+INSERT  INTO  logs  ( 
+    nivel , 
+    mensaje , 
+    fecha_hora , 
+    usuario_id , 
+    ip_address
+ )  VALUES  ( 
+    'INFO' , 
+    'Usuario autenticado correctamente' , 
+    CURRENT_TIMESTAMP ,   -- Función de fecha/hora actual 
+    ( SELECT  id  FROM  usuarios  WHERE  username  =  'admin' ) ,   -- Subconsulta 
+    INET  '192.168.1.100'   -- Tipo de dato específico 
+) ; 
+
+Inserción con Tipos de Datos Especiales
+SQL
+
+-- JSON/JSONB 
+INSERT  INTO  configuraciones  ( 
+    usuario_id , 
+    preferencias
+ )  VALUES  ( 
+    1 , 
+    '{"tema": "oscuro", "notificaciones": true, "idioma": "es"}' ::jsonb
+ ) ; 
+
+-- Arrays 
+INSERT  INTO  cursos  ( 
+    nombre , 
+    estudiantes , 
+    habilidades
+ )  VALUES  ( 
+    'Programación Python' , 
+    ARRAY [ 'Juan' ,  'María' ,  'Carlos' ] ,   -- Array de texto 
+    ARRAY [ 1 ,  2 ,  3 ,  4 ,  5 ] :: integer [ ]      -- Array de enteros 
+) ; 
+
+-- UUID 
+INSERT  INTO  transacciones  ( 
+    id ,   -- Tipo UUID 
+    monto , 
+    descripcion
+ )  VALUES  ( 
+    gen_random_uuid ( ) ,   -- Genera UUID aleatorio 
+    150.75 , 
+    'Compra en línea' 
+) ; 
+
+-- Datos Geográficos (PostGIS) 
+INSERT  INTO  ubicaciones  ( 
+    nombre , 
+    coordenadas
+ )  VALUES  ( 
+    'Oficina Central' , 
+    ST_GeomFromText ( 'POINT(-3.703790 40.416775)' )   -- Madrid 
+) ; 
+
+3. VALORES POR DEFECTO
+Columnas con DEFAULT
+SQL
+
+-- Tabla con valores por defecto 
+CREATE  TABLE  pedidos  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    numero_pedido  VARCHAR ( 20 )  UNIQUE  NOT  NULL , 
+    cliente_id  INT  NOT  NULL , 
+    total  DECIMAL ( 10 ,  2 )  NOT  NULL , 
+    estado  VARCHAR ( 20 )  DEFAULT  'pendiente' , 
+    fecha_pedido  TIMESTAMP  DEFAULT  CURRENT_TIMESTAMP , 
+    fecha_entrega  DATE , 
+    notas  TEXT 
+) ; 
+
+-- Inserción usando DEFAULT 
+INSERT  INTO  pedidos  ( numero_pedido ,  cliente_id ,  total )  
+VALUES  ( 'PED-001' ,  1 ,  199.99 ) ; 
+-- estado = 'pendiente', fecha_pedido = ahora() 
+
+-- Inserción explícita con DEFAULT 
+INSERT  INTO  pedidos  ( 
+    numero_pedido , 
+    cliente_id , 
+    total , 
+    estado , 
+    fecha_pedido
+ )  VALUES  ( 
+    'PED-002' , 
+    2 , 
+    299.99 , 
+    DEFAULT ,       -- Usa el valor por defecto de la columna 
+    DEFAULT        -- Usa CURRENT_TIMESTAMP 
+) ; 
+
+-- Inserción usando NULL (si la columna permite NULL) 
+INSERT  INTO  pedidos  ( 
+    numero_pedido , 
+    cliente_id , 
+    total , 
+    fecha_entrega
+ )  VALUES  ( 
+    'PED-003' , 
+    3 , 
+    150.00 , 
+    NULL   -- Explícitamente NULL 
+) ; 
+
+Columnas SERIAL/AUTO_INCREMENT
+SQL
+
+CREATE  TABLE  usuarios  ( 
+    id  SERIAL  PRIMARY  KEY ,            -- Auto-incremental 
+    username  VARCHAR ( 50 )  UNIQUE  NOT  NULL , 
+    email  VARCHAR ( 100 )  UNIQUE  NOT  NULL 
+) ; 
+
+-- PostgreSQL genera automáticamente el ID 
+INSERT  INTO  usuarios  ( username ,  email )  
+VALUES  ( 'jperez' ,  'juan@email.com' ) ; 
+-- id = 1 (generado automáticamente) 
+
+INSERT  INTO  usuarios  ( username ,  email )  
+VALUES  ( 'mgarcia' ,  'maria@email.com' ) ; 
+-- id = 2 
+
+-- También puedes especificar el ID manualmente 
+INSERT  INTO  usuarios  ( id ,  username ,  email )  
+VALUES  ( 100 ,  'admin' ,  'admin@email.com' ) ; 
+-- Ahora los siguientes serán 101, 102, etc. 
+
+4. INSERCIÓN MÚLTIPLE
+Inserción de Múltiples Filas en una Sentencia
+SQL
+
+-- Insertar varias filas a la vez (MUY EFICIENTE) 
+INSERT  INTO  productos  ( nombre ,  precio ,  categoria ,  stock )  VALUES 
+( 'Laptop Dell' ,  899.99 ,  'Electrónica' ,  15 ) , 
+( 'Mouse Logitech' ,  29.99 ,  'Periféricos' ,  50 ) , 
+( 'Teclado Mecánico' ,  89.99 ,  'Periféricos' ,  30 ) , 
+( 'Monitor 24"' ,  199.99 ,  'Electrónica' ,  20 ) , 
+( 'Auriculares' ,  59.99 ,  'Audio' ,  40 ) ; 
+
+-- Límite práctico: PostgreSQL no tiene límite estricto, pero 
+-- por rendimiento, es mejor insertar en lotes de 100-1000 filas 
+
+-- Inserción masiva con arrays (alternativa) 
+INSERT  INTO  estudiantes  ( nombre ,  edad ,  curso ) 
+SELECT  unnest ( ARRAY [ 'Ana' ,  'Luis' ,  'Carlos' ] ) , 
+       unnest ( ARRAY [ 20 ,  22 ,  21 ] ) , 
+       unnest ( ARRAY [ 'Matemáticas' ,  'Física' ,  'Química' ] ) ; 
+
+Comparación de Rendimiento
+SQL
+
+-- ❌ INEFICIENTE: Muchas inserciones individuales 
+INSERT  INTO  logs  ( mensaje )  VALUES  ( 'Log 1' ) ; 
+INSERT  INTO  logs  ( mensaje )  VALUES  ( 'Log 2' ) ; 
+INSERT  INTO  logs  ( mensaje )  VALUES  ( 'Log 3' ) ; 
+-- ... (1000 veces) 
+
+-- ✅ EFICIENTE: Una sola inserción múltiple 
+INSERT  INTO  logs  ( mensaje )  VALUES 
+( 'Log 1' ) ,  ( 'Log 2' ) ,  ( 'Log 3' ) ,  . . .  ( 'Log 1000' ) ; 
+
+-- ⏱️ La inserción múltiple puede ser 10-100x más rápida 
+
+5. INSERTAR CON SELECT
+Copiar Datos de Otra Tabla
+SQL
+
+-- Copiar todos los datos 
+INSERT  INTO  clientes_archivo
+ SELECT  *  FROM  clientes 
+ WHERE  fecha_registro  <  '2020-01-01' ; 
+
+-- Copiar con transformación 
+INSERT  INTO  reporte_ventas  ( mes ,  total_ventas ,  num_pedidos ) 
+SELECT  
+    DATE_TRUNC ( 'month' ,  fecha )  AS  mes , 
+    SUM ( total )  AS  total_ventas , 
+    COUNT ( * )  AS  num_pedidos
+ FROM  pedidos
+ WHERE  fecha  BETWEEN  '2024-01-01'  AND  '2024-12-31' 
+GROUP  BY  DATE_TRUNC ( 'month' ,  fecha ) ; 
+
+-- Copiar con JOINs 
+INSERT  INTO  pedidos_detallados  ( 
+    pedido_id , 
+    cliente_nombre , 
+    producto_nombre , 
+    cantidad , 
+    precio_unitario
+ ) 
+SELECT  
+    p . id , 
+    c . nombre , 
+    pr . nombre , 
+    dp . cantidad , 
+    dp . precio_unitario
+ FROM  pedidos p
+ JOIN  clientes c  ON  p . cliente_id  =  c . id
+ JOIN  detalles_pedido dp  ON  p . id  =  dp . pedido_id
+ JOIN  productos pr  ON  dp . producto_id  =  pr . id
+ WHERE  p . fecha  >=  '2024-01-01' ; 
+
+-- Crear tabla temporal con datos 
+INSERT  INTO  temp_top_clientes
+ SELECT  
+    c . id , 
+    c . nombre , 
+    COUNT ( p . id )  as  total_pedidos , 
+    SUM ( p . total )  as  total_gastado
+ FROM  clientes c
+ LEFT  JOIN  pedidos p  ON  c . id  =  p . cliente_id
+ GROUP  BY c  .  id  ,  c  .  nombre
+ TENER   SUMA  (  p  .  total  )   >   1000 
+ ORDEN   POR  total_gastado  DESC 
+ LIMIT   100  ; 
+
+Ejemplos Avanzados con SELECT
+SQL
+
+-- Insertar datos generados proceduralmente 
+INSERT  INTO  calendario  ( fecha ,  dia_semana ,  es_festivo ) 
+SELECT  
+    fecha_generada , 
+    EXTRACT ( DOW  FROM  fecha_generada ) , 
+    CASE  
+        WHEN  EXTRACT ( DOW  FROM  fecha_generada )  IN  ( 0 ,  6 )  THEN  true 
+        ELSE  false 
+    END 
+FROM  generate_series ( 
+    '2024-01-01' :: date , 
+    '2024-12-31' :: date , 
+    '1 day' :: interval 
+)  AS  fecha_generada ; 
+
+-- Insertar con window functions 
+INSERT  INTO  ranking_empleados  ( empleado_id ,  ventas_mes ,  ranking ) 
+SELECT  
+    empleado_id , 
+    SUM ( total )  as  ventas_mes , 
+    ROW_NUMBER ( )  OVER  ( ORDER  BY  SUM ( total )  DESC )  as  ranking
+ FROM  ventas
+ WHERE  fecha  >=  DATE_TRUNC ( 'month' ,  CURRENT_DATE ) 
+GROUP  BY  empleado_id ; 
+
+6. INSERTAR CON DEVOLUCIÓN
+Obtener Datos de la Inserción
+SQL
+
+-- Obtener el ID generado (muy común) 
+INSERT  INTO  usuarios  ( username ,  email )  
+VALUES  ( 'nuevo_usuario' ,  'nuevo@email.com' ) 
+RETURNING  id ; 
+-- Devuelve: id = 1 
+
+-- Obtener múltiples columnas 
+INSERT  INTO  productos  ( nombre ,  precio ,  stock )  
+VALUES  ( 'Nuevo Producto' ,  99.99 ,  50 ) 
+RETURNING  id ,  nombre ,  precio ,  fecha_creacion ; 
+
+-- Usar en expresiones 
+INSERT  INTO  pedidos  ( cliente_id ,  total )  
+VALUES  ( 1 ,  150.75 ) 
+RETURNING  
+    id , 
+    numero_pedido , 
+    total  *  1.21  as  total_con_iva ;   -- Calcular IVA 
+
+-- Insertar múltiples filas y retornar todas 
+INSERT  INTO  logs  ( nivel ,  mensaje )  VALUES 
+( 'INFO' ,  'Mensaje 1' ) , 
+( 'WARNING' ,  'Mensaje 2' ) , 
+( 'ERROR' ,  'Mensaje 3' ) 
+RETURNING  id ,  nivel ,  mensaje ,  CURRENT_TIMESTAMP  as  fecha_log ; 
+
+-- Con UPDATE en la misma consulta (INSERT...SELECT...RETURNING) 
+INSERT  INTO  auditoria_cambios  ( tabla ,  accion ,  datos_viejos ) 
+SELECT  
+    'usuarios' , 
+    'UPDATE' , 
+    row_to_json ( old_row ) 
+FROM  usuarios old_row
+ WHERE  old_row . id  =  1 
+RETURNING  id ,  CURRENT_TIMESTAMP  as  fecha_auditoria ; 
+
+Ejemplo Práctico con RETURNING
+SQL
+
+-- Proceso completo de creación de pedido 
+WITH  nuevo_pedido  AS  ( 
+    INSERT  INTO  pedidos  ( cliente_id ,  total )  
+    VALUES  ( 1 ,  0 )   -- Total inicial 0 
+    RETURNING  id
+ ) , 
+detalles  AS  ( 
+    INSERT  INTO  detalles_pedido  ( pedido_id ,  producto_id ,  cantidad ,  precio_unitario ) 
+    SELECT  
+        ( SELECT  id  FROM  nuevo_pedido ) , 
+        producto_id , 
+        cantidad , 
+        precio
+     FROM  carrito
+     WHERE  usuario_id  =  1 
+    RETURNING  pedido_id ,  SUM ( cantidad  *  precio_unitario )  as  subtotal
+ ) 
+UPDATE  pedidos p
+ SET  total  =  d . subtotal
+ FROM  detalles d
+ WHERE  p . id  =  d . pedido_id
+ RETURNING  p . id ,  p . numero_pedido ,  p . total ; 
+
+7. UPSERT (INSERTAR EN CASO DE CONFLICTO)
+Manejo de Conflictos con Claves Únicas
+SQL
+
+-- Sintaxis básica de UPSERT 
+INSERT  INTO  usuarios  ( id ,  username ,  email )  
+VALUES  ( 1 ,  'jperez' ,  'juan@email.com' ) 
+ON  CONFLICT  ( id )  DO  NOTHING ;   -- Si existe, no hace nada 
+
+-- Actualizar si existe 
+INSERT  INTO  productos  ( id ,  nombre ,  precio ,  stock )  
+VALUES  ( 1 ,  'Laptop' ,  999.99 ,  10 ) 
+ON  CONFLICT  ( id )  
+DO  UPDATE  SET  
+    precio  =  EXCLUDED . precio , 
+    stock  =  productos . stock  +  EXCLUDED . stock , 
+    fecha_actualizacion  =  CURRENT_TIMESTAMP ; 
+
+-- WHERE condicional en el UPDATE 
+INSERT  INTO  configuraciones  ( usuario_id ,  tema ,  notificaciones )  
+VALUES  ( 1 ,  'oscuro' ,  true ) 
+ON  CONFLICT  ( usuario_id )  
+DO  UPDATE  SET  
+    tema  =  EXCLUDED . tema , 
+    notificaciones  =  EXCLUDED . notificaciones
+ WHERE  configuraciones . usuario_id  =  1 ; 
+
+-- Múltiples columnas en la restricción 
+INSERT  INTO  suscripciones  ( usuario_id ,  servicio_id ,  fecha_inicio )  
+VALUES  ( 1 ,  3 ,  '2024-01-01' ) 
+ON  CONFLICT  ( usuario_id ,  servicio_id )  
+DO  UPDATE  SET  
+    fecha_inicio  =  EXCLUDED . fecha_inicio , 
+    activa  =  true ; 
+
+Ejemplos Complejos de UPSERT
+SQL
+
+-- Contador de visitas con UPSERT 
+INSERT  INTO  visitas_pagina  ( pagina_id ,  fecha ,  contador )  
+VALUES  ( 'home' ,  CURRENT_DATE ,  1 ) 
+ON  CONFLICT  ( pagina_id ,  fecha )  
+DO  UPDATE  SET  
+    contador  =  visitas_pagina . contador  +  1 , 
+    ultima_visita  =  CURRENT_TIMESTAMP 
+RETURNING  contador ; 
+
+-- Sistema de votos/likes 
+INSERT  INTO  votos  ( usuario_id ,  contenido_id ,  tipo )  
+VALUES  ( 1 ,  100 ,  'like' ) 
+ON  CONFLICT  ( usuario_id ,  contenido_id )  
+DO  UPDATE  SET  
+    tipo  =  EXCLUDED . tipo , 
+    fecha_voto  =  CURRENT_TIMESTAMP 
+RETURNING  
+    ( CASE  
+        WHEN  EXCLUDED . tipo  =  'like'  THEN  'Voto actualizado' 
+        ELSE  'Voto eliminado' 
+    END )  as  mensaje ; 
+
+-- Carrito de compras 
+INSERT  INTO  carrito_items  ( usuario_id ,  producto_id ,  cantidad )  
+VALUES  ( 1 ,  5 ,  2 ) 
+ON  CONFLICT  ( usuario_id ,  producto_id )  
+DO  UPDATE  SET  
+    cantidad  =  carrito_items . cantidad  +  EXCLUDED . cantidad , 
+    fecha_actualizacion  =  CURRENT_TIMESTAMP 
+WHERE  carrito_items . cantidad  +  EXCLUDED . cantidad  <=  10   -- Límite de stock 
+RETURNING  cantidad ; 
+
+8. INSERCIÓN DESDE ARCHIVOS
+Usando COPY (Muy Rápido para Grandes Volúmenes)
+SQL
+
+-- Copiar desde archivo CSV 
+COPY clientes  ( nombre ,  email ,  telefono ,  fecha_registro ) 
+FROM  '/ruta/al/archivo/clientes.csv' 
+WITH  ( 
+    FORMAT CSV , 
+    HEADER  true , 
+    DELIMITER  ',' , 
+    NULL  '' , 
+    ENCODING  'UTF8' 
+) ; 
+
+-- Copiar desde archivo con transformaciones 
+COPY productos 
+ FROM  '/ruta/al/archivo/productos.csv' 
+WITH  ( 
+    FORMAT CSV , 
+    HEADER  true , 
+    DELIMITER  ';' , 
+    QUOTE  '"' , 
+    ESCAPE  '\'
+);
+
+-- Copiar datos a archivo (exportar)
+COPY (SELECT * FROM pedidos WHERE fecha >= ' 2024 - 01 - 01 ')
+TO ' / ruta / de / salida / pedidos_2024 . csv '
+WITH (
+    FORMAT CSV,
+    HEADER true,
+    DELIMITER ' , ',
+    ENCODING ' UTF8'
+ ) ; 
+
+COPY Avanzado
+SQL
+
+-- Especificar columnas específicas 
+COPY empleados  ( nombre ,  apellido ,  email ) 
+FROM  STDIN
+ WITH  ( FORMAT CSV ) ; 
+
+-- Datos desde STDIN 
+-- (Luego pegar los datos CSV) 
+
+-- Con manejo de errores 
+BEGIN ; 
+CREATE  TEMP  TABLE  errores_copia  ( 
+    linea_num  INT , 
+    mensaje_error  TEXT , 
+    datos  TEXT 
+) ; 
+
+COPY productos  FROM  '/ruta/productos.csv' 
+WITH  ( 
+    FORMAT CSV , 
+    HEADER  true , 
+    DELIMITER  ',' 
+) 
+LOG  ERRORS  INTO  errores_copia
+KEEP ; 
+
+-- Ver errores 
+SELECT  *  FROM  errores_copia ; 
+
+COMMIT ; 
+
+Usando \copy en psql
+intento
+
+# Desde la línea de comandos de psql 
+\ copy  ( SELECT * FROM clientes )  TO  'clientes.csv'  WITH CSV HEADER
+
+ # Importar desde psql 
+\ copy clientes FROM  'clientes.csv'  WITH CSV HEADER 
+
+9. BUENAS PRÁCTICAS
+Validación y Seguridad
+SQL
+
+-- ❌ PELIGROSO: SQL Injection 
+INSERT  INTO  usuarios  ( nombre )  VALUES  ( '$nombre' ) ;   -- Variable sin escapar 
+
+-- ✅ SEGURO: Usar parámetros 
+-- En Python: cursor.execute("INSERT INTO usuarios (nombre) VALUES (%s)", (nombre,)) 
+
+-- ✅ Validar datos antes de insertar 
+INSERT  INTO  productos  ( nombre ,  precio ,  stock ) 
+VALUES  ( 
+    TRIM ( '  Laptop  ' ) ,   -- Eliminar espacios 
+    GREATEST ( 0 ,  - 100 ) ,     -- Asegurar precio positivo (usará 0) 
+    LEAST ( 1000 ,  1500 )      -- Limitar stock máximo 
+) ; 
+
+-- ✅ Usar CHECK constraints en la tabla 
+CREATE  TABLE  productos  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    nombre  VARCHAR ( 100 )  NOT  NULL , 
+    precio  DECIMAL ( 10 , 2 )  CHECK  ( precio  >=  0 ) , 
+    stock  INT  CHECK  ( stock  >=  0 ) , 
+    categoria  VARCHAR ( 50 )  CHECK  ( categoria  IN  ( 'Electrónica' ,  'Ropa' ,  'Hogar' ) ) 
+) ; 
+
+Rendimiento
+SQL
+
+-- ❌ INEFICIENTE: Inserción fila por fila en bucle 
+FOR  i  IN  1. .1000  LOOP 
+    INSERT  INTO  logs  ( mensaje )  VALUES  ( 'Mensaje '  ||  i ) ; 
+END  LOOP ; 
+
+-- ✅ EFICIENTE: Inserción masiva 
+INSERT  INTO  logs  ( mensaje ) 
+SELECT  'Mensaje '  ||  generate_series ( 1 ,  1000 ) ; 
+
+-- ✅ Usar transacciones para múltiples inserciones 
+BEGIN ; 
+INSERT  INTO  tabla1  ( . . . )  VALUES  ( . . . ) ; 
+INSERT  INTO  tabla2  ( . . . )  VALUES  ( . . . ) ; 
+INSERT  INTO  tabla3  ( . . . )  VALUES  ( . . . ) ; 
+COMMIT ; 
+
+-- ✅ Desactivar índices temporalmente para carga masiva 
+-- (Solo para cargas MUY grandes) 
+ALTER  TABLE  productos  DISABLE  TRIGGER  ALL ; 
+-- ... realizar copia masiva ... 
+ALTER  TABLE  productos  ENABLE  TRIGGER  ALL ; 
+
+Mantenibilidad
+SQL
+
+-- ❌ CONFUSO: Inserción implícita 
+INSERT  INTO  usuarios  VALUES  ( DEFAULT ,  'Juan' ,  NULL ,  . . . ) ; 
+
+-- ✅ CLARO: Especificar columnas explícitamente 
+INSERT  INTO  usuarios  ( 
+    username , 
+    email , 
+    fecha_registro , 
+    activo
+ )  VALUES  ( 
+    'jperez' , 
+    'juan@email.com' , 
+    CURRENT_DATE , 
+    true 
+) ; 
+
+-- ✅ Documentar valores especiales 
+INSERT  INTO  transacciones  ( 
+    tipo ,           -- 'C'=Compra, 'V'=Venta, 'D'=Devolución 
+    monto , 
+    descripcion     -- Formato: "Producto - Cantidad" 
+)  VALUES  ( 
+    'C' , 
+    150.75 , 
+    'Laptop Dell - 1 unidad' 
+) ; 
+
+10. EJEMPLOS CON PYTHON
+Clase Base para Inserción de Datos
+pitón
+
+importar  psycopg2
+ desde  psycopg2  importar  sql
+ de  psycopg2  .  extras  importar  execute_batch
+ desde  escribir  importar  Lista  ,  Diccionario  ,  Cualquiera  ,  Opcional
+ importar  csv
+ importar  json
+
+ clase   PostgreSQLInserter  : 
+     def   __init__  (  self  ,  parámetros_de_conexión  )  : 
+        self  .  parámetros_de_conexión  =  parámetros_de_conexión
+        ser  .  conn  =   Ninguno 
+        
+     def   connect  (  self  )  : 
+         """Establecer conexión""" 
+        self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.connection_params ​ ​  ) 
+         return  self.conn ​ ​
+    
+     def   desconectar  (  self  )  : 
+         """Cerrar conexión""" 
+         if  self  .  conexión  : 
+            self.conn.close  :  "  (  "  )  un 
+    
+     def   insert_single  (  self  ,  table  :   str  ,  data  :  Dict  )   -  >  Opcional  [  int  ]  : 
+         """Insertar 
+         if   not  self.conn  solo  registro  " 
+            yo  .  conectar  (  ) 
+        
+        columnas  =  datos  .  claves  (  ) 
+        valores  =   [  datos  [  col  ]   para  col  en  columnas  ] 
+        
+        consulta  =  sql  .  SQL  (  """
+            INSERTAR EN {tabla} ({columnas})
+            VALORES ({marcadores de posición})
+            DEVOLVIENDO id
+        """  )  .  formato  ( 
+            tabla  =  sql  .  Identificador  (  tabla  )  , 
+            columnas  =  sql  .  SQL  (  ', '  )  .  join  (  map  (  sql  .  Identificador  ,  columnas  )  )  , 
+            marcadores de posición =  sql  .  SQL  (  ', '  )  .  join  (  sql  .  Placeholder  (  )   *   len  (  valores  )  ) 
+         ) 
+        
+         try  : 
+             con  self  .  conn  .  cursor  (  )   como  cursor  : 
+                cursor  .execute ​  (  consulta  ,  valores  ) 
+                resultado  =  cursor  .  fetchone  (  ) 
+                self  .  conn  .  commit  (  ) 
+                 devolver  resultado  [  0  ]   si  resultado  de lo contrario   Ninguno 
+         excepto  Excepción  como  e  : 
+            self.conn.rollback  self  )  Insertar  "  (  ) 
+             print  (  f"Error al insertar:  {  e  }  "  ) 
+             return   None 
+    
+     def   insert_batch  (  ,  :  table  :   str  ,  data_list  :  List  [  Dict  ]  ]   -  >  List  [  int  ]  : 
+         "" 
+         if   not  data_list  : 
+             return   [  " " 
+        
+         if   not  self.conn  de forma eficiente "  registros  múltiples 
+            ser  .  connect  (  ) 
+        
+         # Todas las filas deben tener las mismas columnas 
+        columnas  =  lista_de_datos  [  0  ]  .claves ​  (  ) 
+        values_list  =   [  [  row  [  col  ]   para  col  en  columnas  ]   para  fila  en  data_list  ] 
+        
+        consulta  =  sql  .  SQL  (  """
+            INSERTAR EN {tabla} ({columnas})
+            VALORES ({marcadores de posición})
+            DEVOLVIENDO id
+        """  )  .  formato  ( 
+            tabla  =  sql  .  Identificador  (  tabla  )  , 
+            columnas  =  sql  .  SQL  (  ', '  )  .  join  (  map  (  sql  .  Identificador  ,  columnas  )  )  , 
+            marcadores de posición  =  sql  .  SQL  (  ', ' )  .  join  (  sql  .  Placeholder  (  )   *   len  (  columnas  )  ) 
+         ) 
+        
+         try  : 
+             with  self  .  conn  .  cursor  (  )   as  cursor  : 
+                 # execute_batch es más eficiente que un bucle 
+                execute_batch  (  cursor  ,  consulta  ,  lista_de_valores  ) 
+                resultados  =  cursor  .  fetchall  (  ) 
+                self  .  conn  .  commit  (  ) 
+                 devuelve   [  fila  [  0  ]   para  fila  en  resultados  ] 
+         excepto  Excepción  como  e  : 
+            self.conn.rollback  Error en inserción  "  int  "  (  ) 
+             print  (  por lotes:  {  e  }  [  ) 
+             return   ]  f " 
+    
+     def   upsert  (  self  ,  table  :   str  ,  data  :  Dict  ,  conflict_columns  :  List  [  str  ]  )   -  >  Optional  [  ]  :  " 
+         ""UPSERT: Insertar o actualizar si existe 
+         if   not  self.conn  :  "  " 
+            yo  .  conectar  (  ) 
+        
+        columnas  =  datos  .  claves  (  ) 
+        valores  =   [  datos  [  col  ]   para  col  en  columnas  ] 
+        
+         # Construir la parte SET del UPDATE 
+        update_set  =  sql  .  SQL  (  ', '  )  .  join  (  [ 
+            sql  .  SQL  (  "{} = EXCLUIDO.{}"  )  .  formato  ( 
+                sql  .  Identificador  (  col  )  , 
+                sql  .  Identificador  (  col  ) 
+             está 
+             para  col  en  columnas  si  col  no   en  conflict_columns
+         ]  ) 
+        
+        consulta  =  sql  .  SQL  (  """
+            INSERTAR EN {tabla} ({columnas})
+            VALORES ({marcadores de posición})
+            SOBRE EL CONFLICTO ({columnas_de_conflicto})
+            ACTUALIZAR CONJUNTO {update_set}
+            DEVOLVIENDO id
+        """ )  .  formato  ( 
+            tabla  =  sql  .  Identificador  (  tabla  )  , 
+            columnas  =  sql  .  SQL  (  ', '  )  .  join  (  map  (  sql  .  Identificador  ,  columnas  )  )  , 
+            marcadores de posición  =  sql  .  SQL  (  ', '  )  .  join  (  sql  .  Placeholder  (  )   *   len  (  valores  )  )  , 
+            columnas_conflicto  =  sql.SQL ​ ​  (  ,  )  .  join  (  map  (  sql.Identifier  ,  )  '  columnas_conflicto  )  ,  ' 
+            conjunto_de_actualizaciones  =  conjunto_de_actualizaciones
+         ) 
+        
+         prueba  : 
+             con  self.conn.cursor ​ ​ ​  cursor  (  )   como ​  : 
+                cursor  .execute ​  (  consulta  ,  valores  ) 
+                resultado  =  cursor  .  fetchone  (  ) 
+                self  .  conn  .  commit  (  ) 
+                 devolver  resultado  [  0  ]   si  resultado  de lo contrario   Ninguno 
+         excepto  Excepción  como  e  : 
+            self.conn.rollback  "  )  }  {  (  ) 
+             print  (  en UPSERT  e  (  f  "  self 
+             return   None 
+    
+     def   insert_from_csv  str  ,  :  tabla  :   str  ,  csv_path  Error   ,  :  
+                       delimitador  :   str   =   ','  ,  has_header  :   bool   =   True  )   -  >   int  : 
+         """Insertar datos desde archivo CSV usando COPY""" 
+         if   not  self  .  conexión  : 
+            self  .  connect  (  ) 
+        
+         try  : 
+             with  self  .  conn  .  cursor  (  )   as  cursor  : 
+                 # Primero, crear tabla temporal 
+                cursor  .ejecutar  "  (  f"" 
+                    CREAR TABLA TEMPORAL temp_csv_data 
+                    (COMO {  tabla  }  INCLUYENDO VALORES PREDETERMINADOS)
+                    AL COMPROBAR, CAER
+                """  ) 
+                
+                 # Copiar datos a tabla temporal 
+                 with   open  (  csv_path  ,   'r'  ,  encoding  =  'utf-8'  )   as  f  : 
+                    cursor  .copy_expert  (  f" " 
+                         "
+                        COPIAR temp_csv_data DESDE STDIN 
+                        CON (
+                            FORMATO CSV,
+                            DELIMITER '  {  delimitador  }  ',
+                            ENCABEZADO  {  tiene_encabezado  }  ,
+                            CODIFICACIÓN 'UTF8'
+                        )
+                        """  , 
+                        F
+                     ) 
+                
+                 # Insertar en tabla real, manejando duplicados 
+                cursor  .ejecutar  "  (  f"" 
+                    INSERTAR EN  {  tabla  } 
+                    SELECCIONAR * DE temp_csv_data
+                    SOBRE EL CONFLICTO NO HACER NADA
+                """  ) 
+                
+                filas_afectadas  =  cursor  .  recuento_de_filas
+                self.conn.commit ​ ​  (  devuelve ​  ) 
+                ​  filas_afectadas 
+                
+         excepto  Excepción  como  e  : 
+            autoconexión ​ ​ .  rollback  (  ) 
+             print  (  f"Error al importar CSV:  {  e  }  "  ) 
+             return   0 
+    
+     def   bulk_insert_with_copy  (  self  ,  table  :   str  ,  data  :  List  [  Dict  ]  )   -  >   int  : 
+         """Inserción masiva usando COPY desde memoria""" 
+         if   not  self  .  conn  or   not  data  : 
+             return   0 
+        
+         try  : 
+             with  self  .  conn  .  cursor  (  )   as  cursor  : 
+                 # Convertir datos a formato CSV en memoria 
+                 import  io
+                salida  =  io  .  StringIO  (  ) 
+                
+                 # Escribir datos como CSV 
+                escritor  =  csv  .  DictWriter  (  salida  ,  nombres de campo  =  datos  [  0  ]  .  claves  (  )  ) 
+                escritor  .  escritorrows  (  datos  ) 
+                producción  .  buscar  (  0  ) 
+                
+                 # Usar COPY para carga rápida 
+                cursor  .copiar_de ​  ( 
+                    producción  , 
+                    mesa  , 
+                    sep  =  ','  , 
+                    nulo  =  ''  , 
+                    columnas  =  datos  [  0  ]  .  claves  (  ) 
+                 ) 
+                
+                filas_afectadas  =  cursor  .  recuento_de_filas
+                self.conn.commit ​ ​  (  devuelve ​  ) 
+                ​  filas_afectadas 
+                
+         excepto  Excepción  como  e  : 
+            ser  .  conexión  .  rollback  (  ) 
+             print  (  f"Error en inserción masiva:  {  e  }  "  ) 
+             return   0 
+
+ # Ejemplo de uso 
+ if  __name__  ==   "__main__" : 
+    # Configuración de conexión 
+    config  =  { 
+        'dbname' :  'tienda_db' , 
+        'user' :  'admin' , 
+        'password' :  'password' , 
+        'host' :  'localhost' , 
+        'port' :  '5432' 
+    } 
+    
+    inserter  =  PostgreSQLInserter ( config ) 
+    inserter . connect ( ) 
+    
+    # 1. Insertar un solo cliente 
+    cliente_id  =  inserter . insert_single ( 'clientes' ,  { 
+        'nombre' :  'Juan Pérez' , 
+        'email' :  'juan@email.com' , 
+        'telefono' :  '+34 600 123 456' , 
+        'fecha_registro' :  '2024-01-15' , 
+        'activo' :  True 
+    } ) 
+    print ( f"Cliente insertado con ID:  { cliente_id } " ) 
+    
+    # 2. Insertar múltiples productos 
+    productos  =  [ 
+        { 
+            'nombre' :  'Laptop Dell' , 
+            'descripcion' :  'Laptop 15 pulgadas, 16GB RAM' , 
+            'precio' :  899.99 , 
+            'stock' :  10 , 
+            'categoria' :  'Electrónica' 
+        } , 
+        { 
+            'nombre' :  'Mouse Logitech' , 
+            'descripcion' :  'Mouse inalámbrico' , 
+            'precio' :  29.99 , 
+            'stock' :  50 , 
+            'categoria' :  'Periféricos' 
+        } , 
+        { 
+            'nombre' :  'Teclado Mecánico' , 
+            'descripcion' :  'Teclado RGB switches azules' , 
+            'precio' :  89.99 , 
+            'stock' :  30 , 
+            'categoria' :  'Periféricos' 
+        } 
+    ] 
+    
+    producto_ids  =  inserter . insert_batch ( 'productos' ,  productos ) 
+    print ( f"Productos insertados:  { len ( producto_ids ) } " ) 
+    
+    # 3. UPSERT para actualizar stock 
+    stock_update  =  { 
+        'producto_id' :  1 , 
+        'almacen_id' :  1 , 
+        'cantidad' :  5 , 
+        'fecha_actualizacion' :  '2024-01-15' 
+    } 
+    
+    stock_id  =  inserter . upsert ( 
+        table = 'inventario' , 
+        data = stock_update , 
+        conflict_columns = [ 'producto_id' ,  'almacen_id' ] 
+    ) 
+    print ( f"Inventario actualizado con ID:  { stock_id } " ) 
+    
+    # 4. Insertar desde archivo CSV 
+    rows_inserted  =  inserter . insert_from_csv ( 
+        table = 'clientes' , 
+        csv_path = 'clientes_nuevos.csv' , 
+        delimiter = ',' , 
+        has_header = True 
+    ) 
+    print ( f"Clientes importados desde CSV:  { rows_inserted } " ) 
+    
+    inserter . disconnect ( ) 
+
+Ejemplo Avanzado: Sistema de Pedidos
+pitón
+
+clase   OrderSystem  : 
+     def   __init__  (  self  ,  db_config  )  : 
+          mismo.db_config yo ​  =  db_config 
+        self  .  conn  =   None 
+    
+     def   create_order  (  self  ,  client_id  :   int  ,  items  :  List  [  Dict  ]  )   -  >  Dict  : 
+         """Crear un pedido completo con transacción""" 
+         try  : 
+            self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.db_config ​ ​  ) 
+            ser  .  conexión  .  autocommit  =   False 
+            
+             con  self  .  conexión  .  cursor  (  )   como  cursor  : 
+                 # 1. Crear el pedido 
+                cursor  .ejecutar  (  "  ""
+                    INSERTAR EN pedidos (cliente_id, total)
+                    VALORES (%s, 0)
+                    REGRESO id, numero_pedido, fecha_pedido
+                """  ,   (  id_del_cliente  ,  )  ) 
+                
+                orden  =  cursor  .  fetchone  (  ) 
+                id_del_pedido  ,  número_del_pedido  ,  fecha_del_pedido  =  pedido
+                
+                total_amount  =   0 
+                
+                 # 2. Insertar items del pedido 
+                 for  item  in  items  : 
+                     # Verificar stock 
+                    cursor  .ejecutar  (  "  ""
+                        SELECCIONA precio, stock DE productos 
+                        DONDE id = %s PARA ACTUALIZAR
+                    """ ,  ( item [ 'producto_id' ] , ) ) 
+                    
+                    product  =  cursor . fetchone ( ) 
+                    if  not  product : 
+                        raise  ValueError ( f"Producto  { item [ 'producto_id' ] }  no existe" ) 
+                    
+                    price ,  stock  =  product
+                    
+                     if  stock  <  item [ 'cantidad' ] : 
+                        raise  ValueError ( f"Stock insuficiente para producto  { item [ 'producto_id' ] } " ) 
+                    
+                    # Calcular subtotal 
+                    subtotal  =  price  *  item [ 'cantidad' ] 
+                    total_amount  +=  subtotal
+                    
+                     # Insertar detalle 
+                    cursor . execute ( """
+                        INSERT INTO detalles_pedido 
+                        (pedido_id, producto_id, cantidad, precio_unitario, subtotal)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """ ,  ( order_id ,  item [ 'producto_id' ] ,  item [ 'cantidad' ] ,  price ,  subtotal ) ) 
+                    
+                    # Actualizar stock 
+                    cursor . execute ( """
+                        UPDATE productos 
+                        SET stock = stock - %s
+                        WHERE id = %s
+                    """ ,   (  item  [  'cantidad'  ]  ,  item  [  'producto_id'  ]  ) )  ) 
+                
+                 # 3. Actualizar total del pedido 
+                cursor  .ejecutar  (  "  ""
+                    ACTUALIZACIÓN pedidos 
+                    ESTABLECER total = %s
+                    DONDE id = %s
+                """  ,   (  total_amount  ,  order_id  )  ) 
+                
+                 # 4. Registrador en auditoría 
+                cursor  .ejecutar  (  "  ""
+                    INSERTAR EN auditoria_pedidos 
+                    (pedido_id, accion, detalles)
+                    VALORES (%s, 'CREACION', %s)
+                """  ,   (  order_id  ,  json  .  dumps  (  { 
+                     'cliente_id'  :  client_id  , 
+                     'total'  :  total_amount  , 
+                     'items'  :  items  , 
+                     'fecha'  :   str  (  order_date  ) 
+                 }  )  )  ) 
+                
+                self.conn.commit  número del  '  ,  importe  (  ) 
+                
+                 return   { 
+                     'success'  True   ,  ' 
+                     order_id'  :  id del pedido  ' 
+                     order_number'  :  pedido  , 
+                     total'  '  ,  : 
+                     message'  :   'Pedido creado exitosamente' 
+                 } 
+                
+         except  Exception  as  e  : 
+             if  self.conn  :  total  : 
+                self.conn.rollback  '  self.conn  :  :  (  ) 
+             return   { 
+                 'success'  False   ,  ' 
+                 '  :   str  (  e  )  , 
+                 'message'  '   crear el pedido 
+             } 
+         finally  : 
+             if  :  al  error  Error 
+                self.conn.close ​ ​  (  def ​  ) 
+    
+    ​   pedidos_de_importación_masiva (  self  ,  orders_data  :  List  [  Dict  ]  )   -  >  Dict  : 
+         """Importación masiva de pedidos optimizada""" 
+         try  : 
+            self.conn    psycopg2.connect  =  carga  COPY  Use  (  **  self.db_config io  para  ) 
+            
+             COPY 
+             con  self.conn.cursor  (  cursor  la importación  #  )  los datos   como  #  : 
+                 Prepare 
+                 para  masiva 
+                 importar  csv
+                
+                 # Datos para pedidos 
+                pedidos_salida  =  io  .  StringIO  (  ) 
+                orders_writer  =  csv  .writer  orders_output  (  orders_data  ) 
+                
+                 para  pedido  en  :  el 
+                    pedidos_escritor.writerow   writerow ( [ 
+                        orden  [  'cliente_id'  ]  , 
+                        orden  [  'total'  ]  , 
+                        orden  .get  (  '  'estado'  ,   'pendiente  )  , 
+                        orden.get  (  fecha_pedido  '  '  ,   'AHORA()'  ) 
+                     ]  ) 
+                
+                orders_output.seek  (  0  pedidos  #  ) 
+                
+                 Cargar 
+                cursor.copy_expert "  (  "   
+                    COPIAR pedidos (customer_id, total, estado, pedido_cerrado)
+                    DESDE STDIN CON CSV
+                """ ,  pedidos_de_salida  ) 
+                
+                ser .  conn  .  commit  (  ) 
+                
+                 return   { 
+                     'success'  :   True  , 
+                     'imported'  :   len  (  orders_data  )  , 
+                     'message'  :   f'Importados  {  len  (  orders_data  )  }  pedidos' 
+                 } 
+                
+         except  Exception  as  e  : 
+             if  self  .  conn  : 
+                self.conn.rollback  )  :  :  (  }  ) 
+             return   { 
+                 éxito  :   Falso  , 
+                 error  e   str  (  :  '  , 
+                 importado  '   0 
+             ' 
+         finalmente  : 
+             si  self.conn  '  '  ' 
+                ser  .  conexión  .  close  (  ) 
+
+ # Uso del sistema de pedidos 
+ if  __name__  ==   "__main__"  : 
+    db_config  =   { 
+         'dbname'  :   'tienda_db'  , 
+         'usuario'  :   'admin'  , 
+         'contraseña'  :   'contraseña'  , 
+         'host'  :   'localhost' 
+     } 
+    
+    order_system  =  OrderSystem  (  db_config  ) 
+    
+     # Crear un pedido 
+    resultado  =  sistema_de_pedidos  .crear_pedido ​  ( 
+        id_cliente  =  1  , 
+        items  =  [ 
+             {  'producto_id'  :   1  ,   'cantidad'  :   2  }  , 
+             {  'producto_id'  :   2  ,   'cantidad'  :   1  } 
+         ] 
+     ) 
+    
+     print  (  resultado  ) 
+    
+     # Importación masiva 
+    pedidos_a_importación  =   [ 
+         {  'cliente_id'  :   1  ,   'total'  :   150.75  }  , 
+         {  'cliente_id'  :   2  ,   'total'  :   89.99  }  , 
+         {  'cliente_id'  :   3  ,   'total'  :   245.50  }  , 
+         # ... más pedidos 
+     ] 
+    
+    resultado_de_importación  =  sistema_de_pedidos  .importación_masiva_de_pedidos  pedidos_a_importar  ( ​  ) 
+     imprimir  (  resultado_de_importación  ) 
+
+Manejo de Errores y Validación
+pitón
+
+clase   SafeInserter  : 
+     def   __init__  (  self  ,  connection  )  : 
+        auto  .  conexión  =  conexión
+    
+     def   validar_y_insertar  (  self  ,  tabla  :   str  ,  datos  :  Dict  )   -  >  Dict  : 
+         """Validar datos antes de insertar""" 
+        validation_errors  =   [  ] 
+        
+         # Validaciones específicas por tabla 
+         if  table  ==   'clientes'  : 
+             if   'email'   en  datos  y   no  self  .  _is_valid_email  (  datos  [  'correo electrónico'  ]  )  : 
+                validation_errors  .  append  (  'Email inválido'  ) 
+            
+             if   'telefono'   in  data  and   not  self  .  _is_valid_phone  (  data  [  'telefono'  ]  )  : 
+                errores_validación  .  append  (  'Teléfono inválido'  ) 
+        
+         elif  table  ==   'productos'  : 
+             if   'precio'   in  data  and  data  [  'precio'  ]   <=   0  : 
+                validation_errors  .  append  (  'Precio debe ser positivo'  ) 
+            
+             if   'stock'   in  data  and  data  [  'stock'  ]   <   0  : 
+                errores_validación  .  append  (  'Stock no puede ser negativo'  ) 
+        
+         if  validation_errors  : 
+             return   { 
+                 'success'  :   False  , 
+                 'errors'  :  validation_errors  , 
+                 'message'  :   'Errores de validación' 
+             } 
+        
+         # Intentar inserción 
+         try  : 
+             with  self  .  conexión  .  cursor  (  )   como  cursor  : 
+                columnas  =   lista  (  datos  .  claves  (  )  ) 
+                valores =   lista  (  datos  .  valores  (  )  ) 
+                
+                marcadores de posición  =   ', '  .  join  (  [  '%s'  ]   *   len  (  valores  )  ) 
+                consulta  =   f"""
+                    INSERTAR EN  {  tabla  }  (  {  ', '  .  join  (  columnas  )  }  )
+                    VALORES (  {  marcadores de posición  }  )
+                    DEVOLVIENDO id
+                """ 
+                
+                cursor  .execute ​  (  consulta  ,  valores  ) 
+                id_insertado  =  cursor  .  fetchone  (  )  [  0  ] 
+                self.connection.commit  '  :  (  insertado  )  Registro 
+                
+                 return   { 
+                     'success'  :   True  , 
+                     'id'  insert_id  ,  ' 
+                     '  '   exitosamente 
+                 } 
+                
+         except  psycopg2.IntegrityError  e  :  as  :  message 
+            ser  .  conexión  .  rollback  (  ) 
+             return   { 
+                 'éxito'  :   Falso  , 
+                 'error'  :   'Violación de integridad'  , 
+                 'detalle'  :   str  (  e  )  .  split  (  '\n'  )  [  0  ]  , 
+                 'message'  :   'Posible duplicado o referencia inválida' 
+             } 
+        
+         excepto  psycopg2  .  Error  como  e  : 
+            ser  .  conexión  .  rollback  (  ) 
+             return   { 
+                 'success'  :   False  , 
+                 'error'  :   'Error de base de datos'  , 
+                 'detail'  :   str  (  e  )  , 
+                 'message'  :   'Error al insertar el registro' 
+             } 
+    
+     def   _is_valid_email  (  self  ,  email  :   str  )   -  >   bool  : 
+         """Validación simple de email""" 
+         import  re
+        patrón =  r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' 
+        return  bool ( re . match ( pattern ,  email ) ) 
+    
+    def  _is_valid_phone ( self ,  phone :  str )  - >  bool : 
+        """Validación simple de teléfono""" 
+        import  re
+         # Acepta números con o sin prefijo internacional 
+        pattern  =  r'^[\+]?[0-9\s\-\(\)]{7,15}$' 
+        return  bool ( re . match ( pattern ,  phone ) ) 
+
+# Uso con contexto seguro 
+from  contextlib  import  contextmanager
+
+ @contextmanager 
+def  get_db_connection ( config ) : 
+    """Context manager para conexiones seguras""" 
+    conn  =  None 
+    try : 
+        conn  =  psycopg2 . connect ( ** config ) 
+        yield  conn
+     finally : 
+        if  conn : 
+            conn . close ( ) 
+
+# Ejemplo de uso seguro 
+if  __name__  ==  "__main__" : 
+    with  get_db_connection ( db_config )  as  conn : 
+        inserter  =  SafeInserter ( conn ) 
+        
+        # Insertar cliente válido 
+        result  =  inserter . validate_and_insert ( 'clientes' ,  { 
+            'nombre' :  'Ana López' , 
+            'email' :  'ana@email.com' , 
+            'telefono' :  '+34 912 345 678' 
+        } ) 
+        print ( f"Cliente insertado:  { result } " ) 
+        
+        # Intentar insertar cliente inválido 
+        result  =  inserter . validate_and_insert ( 'clientes' ,  { 
+            'nombre' :  'Juan' , 
+            'email' :  'email-invalido' , 
+            'telefono' :  '123' 
+        } ) 
+        print ( f"Cliente inválido:  { result } " ) 
+
+EJERCICIOS PRÁCTICOS
+Nivel Básico:
+
+    Insertar 5 productos diferentes en una tabla de productos
+
+    Insertar clientes con datos completos incluyendo fecha de registro automática
+
+    Práctica con valores por defecto : Crear una tabla con columnas DEFAULT y insertar datos 
+
+Nivel Intermedio:
+
+    UPSERT de precios : Actualizar precios de productos, insertando si no existen
+
+    Carga desde CSV : Importar datos de un archivo CSV a una tabla
+
+    Inserción con subconsulta : Insertar datos calculados desde otras tablas 
+
+Nivel Avanzado:
+
+    Transacción completa : Insertar pedido con items, actualizar stock y registrar auditoría
+
+    Inserción masiva optimizada : Cargar 10,000 registros usando COPY
+
+    Validación compleja : Crear sistema de inserción con validación de reglas de negocio 
+
+CONSEJOS FINALES
+Para Máximo Rendimiento:
+
+    Usa INSERT múltiple en lugar de inserciones individuales
+
+    Para cargas masivas (>10,000 filas) usa COPY
+
+    Desactiva triggers e índices durante cargas masivas, luego reactívalos
+
+    Usa transacciones para agrupar inserciones relacionadas 
+
+Para Integridad de Datos:
+
+    Especifica siempre las columnas explícitamente
+
+    Usa constraints en la tabla (NOT NULL, CHECK, UNIQUE, FOREIGN KEY)
+
+    Valida datos antes de insertar en la aplicación
+
+    Maneja errores con TRY-CATCH en tu código 
+
+Para Mantenibilidad:
+
+    Documenta valores especiales en comentarios
+
+    Usa RETURNING para obtener IDs generados
+
+    Implementa auditoría de cambios importantes
+
+    Mantén backups antes de operaciones masivas 
+
+¿Te gustaría profundizar en algún aspecto específico de INSERT? Por ejemplo:
+
+    Más ejemplos de UPSERT complejos
+
+    Técnicas de optimización para millones de registros
+
+    Cómo manejar inserciones en tablas particionadas
+
+    Inserción con datos geográficos o JSON avanzados 
+
+¡Continuemos construyendo tu expertise en PostgreSQL! 🚀 

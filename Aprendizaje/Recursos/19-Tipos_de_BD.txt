@@ -1,0 +1,2156 @@
+🗄️ Tipos de Bases de Datos: Guía Completa
+
+Vamos a explorar en profundidad los diferentes tipos de bases de datos, sus características, casos de uso y ejemplos prácticos.
+ÍNDICE
+
+    Clasificación por Modelo de Datos
+
+    Bases de Datos Relacionales (SQL)
+
+    Bases de Datos NoSQL
+
+    Bases de Datos en Memoria
+
+    Bases de Datos de Series de Tiempo
+
+    Bases de Datos Gráficas
+
+    Bases de Datos Espaciales
+
+    Bases de Datos Distribuidas
+
+    Bases de Datos Móviles y Embebidas
+
+    Cómo Elegir la Base de Datos Correcta 
+
+1. CLASIFICACIÓN POR MODELO DE DATOS
+Arquitectura General
+texto
+
+┌─────────────────────────────────────────────────────┐
+│                   TIPOS DE BASES DE DATOS           │
+├─────────────────────────────────────────────────────┤
+│ 1. Relacionales (SQL)       │ 2. NoSQL              │
+│    • PostgreSQL             │   • Documentales      │
+│    • MySQL                  │   • Clave-Valor       │
+│    • Oracle                 │   • Column-family     │
+│    • SQL Server             │   • Gráficas          │
+│                             │                       │
+│ 3. En Memoria               │ 4. Especializadas     │
+│    • Redis                  │   • Series de tiempo  │
+│    • Memcached              │   • Espaciales        │
+│    • VoltDB                 │   • Buscadores        │
+│                             │                       │
+│ 5. Distribuidas             │ 6. Móviles/Embebidas │
+│    • Cassandra              │   • SQLite            │
+│    • CockroachDB            │   • Realm             │
+│    • YugabyteDB             │   • PouchDB           │
+└─────────────────────────────────────────────────────┘ 
+
+2. BASES DE DATOS RELACIONALES (SQL)
+Características Principales
+
+    ACID Compliance : Atomicidad, Consistencia, Aislamiento, Durabilidad
+
+    Schema Estricto : Estructura definida de tablas, columnas, tipos de datos
+
+    SQL (Structured Query Language) : Lenguaje estándar para consultas
+
+    Integridad Referencial : Claves primarias y foráneas
+
+    Normalización : Eliminación de redundancias 
+
+Ventajas
+pitón
+
+"""
+✅ Fortalezas:
+1. Consistencia fuerte (ACID)
+2. Estructura organizada y predecible
+3. Lenguaje SQL estandarizado
+4. Amplio soporte y herramientas
+5. Excelente para datos transaccionales
+6. Soporte para JOINs complejos
+""" 
+
+Desventajas
+pitón
+
+"""
+❌ Limitaciones:
+1. Escalabilidad horizontal limitada
+2. Schema rígido (difícil cambiar estructura)
+3. No optimizado para datos no estructurados
+4. Puede ser sobrecarga para datos simples
+5. JOINs costosos en grandes volúmenes
+""" 
+
+Principales Sistemas RDBMS
+PostgreSQL (Mi favorito 😊)
+SQL
+
+-- Características únicas: 
+-- • Tipos de datos avanzados (JSON, arrays, hstore) 
+-- • Extensiones poderosas (PostGIS, Full-text search) 
+-- • Concurrencia multi-versión (MVCC) 
+-- • Código abierto y comunidad activa 
+
+CREATE  TABLE  empleados  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    nombre  VARCHAR ( 100 ) , 
+    datos JSONB ,   -- Soporte nativo JSON 
+    habilidades  TEXT [ ] ,   -- Arrays 
+    ubicacion GEOGRAPHY ( POINT )   -- PostGIS 
+) ; 
+
+-- Casos de uso: Aplicaciones empresariales, GIS, sistemas complejos 
+
+MySQL/MariaDB
+SQL
+
+-- Características: 
+-- • Muy popular en web 
+-- • Más simple que PostgreSQL 
+-- • Excelente rendimiento lectura 
+-- • Amplia adopción 
+
+CREATE  TABLE  productos  ( 
+    id  INT  AUTO_INCREMENT  PRIMARY  KEY , 
+    nombre  VARCHAR ( 255 ) , 
+    precio  DECIMAL ( 10 , 2 ) , 
+    INDEX  idx_nombre  ( nombre ) 
+)  ENGINE = InnoDB ; 
+
+-- Casos de uso: WordPress, e-commerce, aplicaciones web 
+
+Base de datos Oracle
+SQL
+
+-- Características: 
+-- • Enterprise-grade 
+-- • Funcionalidades avanzadas 
+-- • Alto costo de licencia 
+-- • Amplio soporte corporativo 
+
+-- PL/SQL avanzado 
+CREATE  OR  REPLACE  PROCEDURE  actualizar_salario  AS 
+BEGIN 
+    UPDATE  empleados 
+     SET  salario  =  salario  *  1.05 ; 
+END ; 
+
+-- Casos de uso: Grandes corporaciones, banca, sistemas críticos 
+
+Microsoft SQL Server
+SQL
+
+-- Características: 
+-- • Integración con stack Microsoft 
+-- • SQL Server Integration Services (SSIS) 
+-- • Reporting Services (SSRS) 
+-- • T-SQL (Transact-SQL) 
+
+-- Integración con .NET 
+CREATE  PROCEDURE  sp_GetEmployees
+ AS 
+BEGIN 
+    SELECT  *  FROM  Employees ; 
+END ; 
+
+-- Casos de uso: Empresas Microsoft, .NET applications 
+
+Cuándo Usar Bases de Datos Relacionales
+pitón
+
+"""
+📋 ESCENARIOS IDEALES:
+
+1. Sistemas Transaccionales (OLTP)
+   • Bancos
+   • Sistemas de ventas
+   • Reservas
+
+2. Datos Altamente Estructurados
+   • Catálogos de productos
+   • Sistemas de inventario
+   • Gestión de clientes
+
+3. Necesidad de ACID
+   • Transferencias financieras
+   • Sistemas de pago
+   • Control de inventario
+
+4. Consultas Complejas con JOINs
+   • Reportes empresariales
+   • Análisis de relaciones
+   • Consultas ad-hoc
+""" 
+
+Ejemplo Práctico PostgreSQL con Python
+pitón
+
+import  psycopg2
+ from  psycopg2 . extras  import  RealDictCursor
+
+ class  SistemaBancario : 
+    def  __init__ ( self ) : 
+        self . conn  =  psycopg2 . connect ( 
+            dbname = 'banco_db' , 
+            user = 'admin' , 
+            password = 'secret' , 
+            host = 'localhost' 
+        ) 
+    
+    def  transferencia ( self ,  origen ,  destino ,  monto ) : 
+        """Ejemplo de transacción ACID""" 
+        try : 
+            with  self . conn . cursor ( )  as  cursor : 
+                # Iniciar transacción 
+                self . conn . autocommit  =  False 
+                
+                # Verificar fondos 
+                cursor . execute ( 
+                    "SELECT saldo FROM cuentas WHERE id = %s FOR UPDATE" , 
+                    ( origen , ) 
+                ) 
+                saldo_actual  =  cursor . fetchone ( ) [ 0 ] 
+                
+                if  saldo_actual  <  monto : 
+                    raise  ValueError ( "Fondos insuficientes" ) 
+                
+                # Retirar de origen 
+                cursor . execute ( 
+                    "UPDATE cuentas SET saldo = saldo - %s WHERE id = %s" , 
+                    ( monto ,  origen ) 
+                ) 
+                
+                # Depositar en destino 
+                cursor . execute ( 
+                    "UPDATE cuentas SET saldo = saldo + %s WHERE id = %s" , 
+                    ( monto ,  destino ) 
+                ) 
+                
+                # Registrar transacción 
+                cursor . execute ( 
+                    """
+                    INSERT INTO transacciones (origen, destino, monto, estado)
+                    VALUES (%s, %s, %s, 'COMPLETADA')
+                    """ , 
+                    ( origen ,  destino ,  monto ) 
+                ) 
+                
+                # Confirmar transacción 
+                self . conn . commit ( ) 
+                return  True 
+                
+        except  Exception  as  e : 
+            self . conn . rollback ( ) 
+            print ( f"Error en transferencia:  { e } " ) 
+            return  False 
+    
+    def  generar_reporte ( self ) : 
+        """Consulta compleja con JOINs""" 
+        with  self . conn . cursor ( cursor_factory = RealDictCursor )  as  cursor : 
+            cursor . execute ( """
+                SELECT 
+                    c.nombre,
+                    c.tipo_cuenta,
+                    COUNT(t.id) as num_transacciones,
+                    SUM(CASE 
+                        WHEN t.origen = c.id THEN -t.monto 
+                        WHEN t.destino = c.id THEN t.monto 
+                        ELSE 0 
+                    END) as saldo_total
+                FROM clientes c
+                LEFT JOIN cuentas cu ON c.id = cu.cliente_id
+                LEFT JOIN transacciones t ON cu.id = t.origen OR cu.id = t.destino
+                GROUP BY c.id, c.nombre, c.tipo_cuenta
+                ORDER BY saldo_total DESC
+            """ ) 
+             devuelve  cursor  .fetchall  (  )  el 
+
+3. BASES DE DATOS NOSQL
+4 Tipos Principales de NoSQL
+1. Bases de Datos Documentales
+pitón
+
+"""
+📄 BASES DOCUMENTALES:
+• Almacenan datos en documentos (JSON, BSON, XML)
+• Schema flexible
+• Buenas para contenido jerárquico
+
+Ejemplos: MongoDB, CouchDB, Firebase Firestore
+""" 
+
+MongoDB (El más popular)
+JavaScript
+
+// MongoDB - Documentos JSON 
+db . usuarios . insertOne ( { 
+    _id :  ObjectId ( "507f1f77bcf86cd799439011" ) , 
+    nombre :  "Juan Pérez" , 
+    email :  "juan@email.com" , 
+    direccion :  { 
+        calle :  "Av. Principal 123" , 
+        ciudad :  "Madrid" , 
+        pais :  "España" 
+    } , 
+    hobbies :  [ "futbol" ,  "lectura" ,  "programacion" ] , 
+    fecha_registro :  new  Date ( ) 
+} ) ; 
+
+// Consultas flexibles 
+db . usuarios . find ( { 
+    "direccion.ciudad" :  "Madrid" , 
+    hobbies :  {  $ in :  [ "programacion" ]  } 
+} ) ; 
+
+Python con MongoDB
+pitón
+
+from  pymongo  import  MongoClient
+ from  bson . objectid  import  ObjectId
+
+ class  SistemaBlog : 
+    def  __init__ ( self ) : 
+        self . client  =  MongoClient ( 'localhost' ,  27017 ) 
+        self . db  =  self . client . blog_db
+    
+     def  crear_post ( self ,  titulo ,  contenido ,  autor ,  etiquetas ) : 
+        """Documento flexible con schema dinámico""" 
+        post  =  { 
+            "titulo" :  titulo , 
+            "contenido" :  contenido , 
+            "autor" :  { 
+                "id" :  autor [ "id" ] , 
+                "nombre" :  autor [ "nombre" ] 
+            } , 
+            "etiquetas" :  etiquetas , 
+            "comentarios" :  [ ] ,   # Array de subdocumentos 
+            "metadata" :  { 
+                "vistas" :  0 , 
+                "likes" :  0 , 
+                "fecha_publicacion" :  datetime . now ( ) 
+            } , 
+            "estado" :  "publicado" 
+        } 
+        
+        return  self . db . posts . insert_one ( post ) 
+    
+    def  buscar_posts ( self ,  etiqueta = None ,  autor = None ) : 
+        """Consultas flexibles""" 
+        query  =  { } 
+        if  etiqueta : 
+            query [ "etiquetas" ]  =  etiqueta
+         if  autor : 
+            query [ "autor.nombre" ]  =  autor
+        
+         return  list ( self . db . posts . find ( query ) ) 
+
+2. Bases de Datos Clave-Valor
+pitón
+
+"""
+🔑 BASES CLAVE-VALOR:
+• Estructura simple: clave → valor
+• Altamente escalables
+• Baja latencia
+• No hay relaciones ni joins
+
+Ejemplos: Redis, DynamoDB, etcd
+""" 
+
+Redis (En memoria, clave-valor avanzado)
+pitón
+
+import  redis
+ import  json
+
+ class  SistemaCache : 
+    def  __init__ ( self ) : 
+        self . r  =  redis . Redis ( host = 'localhost' ,  port = 6379 ,  db = 0 ) 
+    
+    def  cache_usuario ( self ,  user_id ,  user_data ,  ttl = 3600 ) : 
+        """Almacenar datos de usuario en cache""" 
+        # Serializar datos 
+        serialized  =  json . dumps ( user_data ) 
+        
+        # Guardar con tiempo de expiración 
+        self . r . setex ( f"user: { user_id } " ,  ttl ,  serialized ) 
+    
+    def  obtener_usuario ( self ,  user_id ) : 
+        """Obtener datos del cache""" 
+        cached  =  self . r . get ( f"user: { user_id } " ) 
+        if  cached : 
+            return  json . loads ( cached ) 
+        return  None 
+    
+    def  contador_vistas ( self ,  post_id ) : 
+        """Contador atómico""" 
+        return  self . r . incr ( f"views:post: { post_id } " ) 
+    
+    def  leaderboard ( self ,  juego ,  usuario ,  puntos ) : 
+        """Sorted set para rankings""" 
+        self . r . zadd ( f"leaderboard: { juego } " ,  { usuario :  puntos } ) 
+        return  self . r . zrevrange ( f"leaderboard: { juego } " ,  0 ,  9 ,  withscores = True ) 
+
+Amazon DynamoDB (Clave-valor escalable)
+pitón
+
+importar  boto3
+ desde  boto3  .  dynamodb  .  condiciones  importar  clave
+
+ clase   DynamoDBManager  : 
+     def   __init__  (  self  )  : 
+        self.dynamodb  '  vote3.resource  =  "  '  us-east -  (  dynamodb'  ,  region_name  =  1'  ) 
+    
+     def   crear_table_sessions  (  self  )  : 
+         """Tabla con partición y clave de ordenación"" 
+        tabla  =  self.dynamodb.create_table ​ ​  ( ​ ​ 
+            TableName  =  'Sesiones de usuario'  , 
+            KeySchema  =  [ 
+                 { 
+                     'AttributeName'  :   'usario_id'  , 
+                     'KeyType'  :   'HASH'    # Clave de partición 
+                 }  , 
+                 { 
+                     'AttributeName'  :   'timestamp'  , 
+                     'KeyType'  :   'RANGE'    # Clave de ordenación 
+                 } 
+             ]  , 
+            AttributeDefinitions  =  [ 
+                 { 
+                     'AttributeName'  :   'user_id'  , 
+                     'AttributeType'  :   'S'    # Cadena 
+                 }  , 
+                 { 
+                     'AttributeName'  :   'timestamp'  , 
+                     'AttributeType'  :   'N'    # Número 
+                 } 
+             ]  , 
+            BillingMode  =  'PAY_PER_REQUEST' 
+         ) 
+         de retorno  tabla 
+    
+     def   save_session  (  self  ,  user_id  ,  session_data  )  : 
+         """Insertar elemento""" 
+        tabla  =  self.dynamodb.table ​ ​  (  SesionesDeUsuario  '  '  ) 
+        
+        item  =   { 
+             'user_id'  :  user_id  , 
+             'timestamp'  :   int  (  time  .  time  (  )  )  , 
+             'datos'  :  session_data  , 
+             'ttl'  :   int  (  time  .  time  (  )  )   +   86400    # Caduca en 24h 
+         } 
+        
+        tabla  .put_item ​  (  Artículo =  artículo  ) 
+
+3. Bases de Datos Column-Family (Wide Column)
+pitón
+
+"""
+📊 BASES COLUMN-FAMILY:
+• Similar a tablas pero columnas dinámicas
+• Optimizado para consultas por columnas
+• Excelente para análisis y big data
+
+Ejemplos: Cassandra, HBase, ScyllaDB
+""" 
+
+Apache Cassandra (Distribuida, alta disponibilidad)
+SQL
+
+-- Cassandra CQL (similar a SQL pero diferente) 
+CREATE  KEYSPACE ecommerce 
+ WITH  replication  =  {
+     'class' :  'SimpleStrategy' , 
+    'replication_factor' :  3 
+} ; 
+
+-- Tabla optimizada para consultas específicas 
+CREATE  TABLE  productos_por_categoria  ( 
+    categoria  text , 
+    producto_id uuid , 
+    nombre  text , 
+    precio  decimal , 
+    stock  int , 
+    PRIMARY  KEY  ( categoria ,  producto_id ) 
+)  WITH  CLUSTERING  ORDER  BY  ( producto_id  ASC ) ; 
+
+-- Las consultas deben usar la clave de partición 
+SELECT  *  FROM  productos_por_categoria 
+ WHERE  categoria  =  'Electrónica' ; 
+
+Python con Cassandra
+pitón
+
+from  cassandra . cluster  import  Cluster
+ from  cassandra . query  import  BatchStatement
+
+ class  SistemaEcommerceCassandra : 
+    def  __init__ ( self ) : 
+        self . cluster  =  Cluster ( [ '127.0.0.1' ] ) 
+        self . session  =  self . cluster . connect ( 'ecommerce' ) 
+    
+    def  insertar_productos_lote ( self ,  productos ) : 
+        """Inserción batch eficiente""" 
+        insert_stmt  =  self . session . prepare ( """
+            INSERT INTO productos_por_categoria 
+            (categoria, producto_id, nombre, precio, stock)
+            VALUES (?, ?, ?, ?, ?)
+        """ ) 
+        
+        batch  =  BatchStatement ( ) 
+        for  producto  in  productos : 
+            batch . add ( insert_stmt ,  ( 
+                producto [ 'categoria' ] , 
+                producto [ 'id' ] , 
+                producto [ 'nombre' ] , 
+                producto [ 'precio' ] , 
+                producto [ 'stock' ] 
+            ) ) 
+        
+        self . session . execute ( batch ) 
+    
+    def  productos_por_categoria ( self ,  categoria ,  limite = 100 ) : 
+        """Consulta optimizada""" 
+        query  =  """
+            SELECT * FROM productos_por_categoria 
+            WHERE categoria = %s
+            LIMIT %s
+        """ 
+        filas  =  self.sesión.ejecutar ​ ​  categoría  )  (  consulta  ,   ( ​  ,  limite  )  ) 
+         devolver   lista  (  filas ​ 
+
+4. Bases de Datos Gráficas (Las veremos en detalle en su sección)
+pitón
+
+"""
+🕸️ BASES GRÁFICAS:
+• Datos como nodos y relaciones
+• Optimizadas para relaciones complejas
+• Consultas de recorrido de grafos
+
+Ejemplos: Neo4j, Amazon Neptune, ArangoDB
+""" 
+
+Ventajas de NoSQL
+pitón
+
+"""
+✅ FORTALEZAS NOSQL:
+
+1. Escalabilidad Horizontal
+   • Fácil añadir más nodos
+   • Distribución automática
+
+2. Schema Flexible
+   • Campos dinámicos
+   • Evolución sin migraciones
+
+3. Alto Rendimiento
+   • Optimizadas para casos específicos
+   • Menos overhead
+
+4. Tolerancia a Fallos
+   • Réplicas automáticas
+   • Alta disponibilidad
+
+5. Modelos de Datos Específicos
+   • Documentos para contenido
+   • Grafos para relaciones
+   • Clave-valor para cache
+""" 
+
+Desventajas de NoSQL
+pitón
+
+"""
+❌ LIMITACIONES NOSQL:
+
+1. Consistencia Eventual (BASE, no ACID)
+   • Datos pueden estar inconsistentes temporalmente
+
+2. Sin JOINs
+   • Debes desnormalizar datos
+   • Duplicación posible
+
+3. Curva de Aprendizaje
+   • APIs propietarias
+   • Menos estandarizado
+
+4. Transacciones Limitadas
+   • No soporte multi-documento en algunos
+   • Consistencia más débil
+
+5. Menos Herramientas
+   • Menos opciones de reporting
+   • Menos integraciones
+""" 
+
+4. BASES DE DATOS EN MEMORIA
+Características
+pitón
+
+"""
+⚡ BASES EN MEMORIA (IN-MEMORY):
+• Datos almacenados en RAM
+• Latencia ultra baja (microsegundos)
+• Persistencia opcional (snapshots)
+• Ideal para cache, sesiones, rankings
+
+Ejemplos: Redis, Memcached, Apache Ignite, VoltDB
+""" 
+
+Redis frente a Memcached
+pitón
+
+"""
+🔍 COMPARACIÓN:
+
+Redis:
+✅ Estructuras de datos ricas (sets, lists, hashes, sorted sets)
+✅ Persistencia opcional (RDB, AOF)
+✅ Replicación maestro-esclavo
+✅ Publicar/Suscribir
+✅ Atomic operations
+✅ Lua scripting
+
+Memcached:
+✅ Más simple
+✅ Multi-threaded (mejor CPU usage)
+✅ Solo clave-valor simple
+✅ Sin persistencia
+✅ Cache puro
+""" 
+
+Casos de Uso Comunes
+pitón
+
+"""
+📋 USOS TÍPICOS:
+
+1. Sistema de Cache
+   • Cache de consultas SQL
+   • Cache de páginas web
+   • Cache de sesiones
+
+2. Sistemas en Tiempo Real
+   • Leaderboards en juegos
+   • Analytics en tiempo real
+   • Sistemas de matching
+
+3. Colas de Mensajes
+   • Pub/Sub
+   • Task queues
+   • Stream processing
+
+4. Almacenamiento de Sesiones
+   • Sesiones de usuario web
+   • Tokens JWT
+   • Datos temporales
+""" 
+
+Ejemplo Completo: Sistema de Cache con Redis
+pitón
+
+importar  redis
+  de importación pepinillos 
+ importar  hashlib
+ desde  functools  importar  wraps
+  de importación tiempo 
+
+ class   CacheDistribuido  : 
+     def   __init__  (  self  ,  hosts  =  None  )  : 
+         # Redis Cluster o sentinel para alta disponibilidad 
+         if  hosts  : 
+             from  rediscluster  import  RedisCluster
+              mismo.redis yo ​  =  RedisCluster  ( 
+                nodos_de_inicio  =  hosts  , 
+                decode_responses  =  False 
+             ) 
+         de lo contrario  : 
+              mismo.redis yo  redis.Redis  = ​ ​ ​  ( 
+                host  =  'localhost'  , 
+                puerto  =  6379  , 
+                decode_responses  =  False 
+             ) 
+    
+     def   cache_query  (  self  ,  ttl  =  300  )  : 
+         """Decorador para cachear resultados de funciones""" 
+         def   decorator  (  func  )  : 
+             @wraps  (  func  ) 
+             def   wrapper  (  *  args  ,   **  kwargs  )  : 
+                 # Crear clave única para la consulta 
+                partes_clave  =   [ 
+                    func  .  __módulo__  , 
+                    func  .__  name__  , 
+                     str  (  args  )  , 
+                     str  (  kwargs  ) 
+                 ] 
+                cache_key  =  hashlib  .  md5  ( 
+                     "::"  .  join  (  key_parts  )  .  encode  (  ) 
+                 )  .  hexdigest  (  ) 
+                
+                 # Intentar obtener el caché 
+                almacenado en caché  =  yo  .  redis  .  obtener  (  cache_key  ) 
+                 si  está en caché  : 
+                     devolver  pickle  .  cargas  (  cached  ) 
+                
+                 # Ejecutar función y cachear resultado 
+                result  =  func ( * args ,  ** kwargs ) 
+                self . redis . setex ( 
+                    cache_key , 
+                    ttl , 
+                    pickle . dumps ( result ) 
+                ) 
+                return  result
+             return  wrapper
+         return  decorator
+    
+     def  rate_limiter ( self ,  key ,  limit ,  window ) : 
+        """Limitador de tasa usando Redis""" 
+        current  =  int ( time . time ( ) ) 
+        window_start  =  current  -  window
+        
+         # Usar pipeline para operaciones atómicas 
+        pipe  =  self . redis . pipeline ( ) 
+        
+        # Eliminar requests fuera de la ventana 
+        pipe . zremrangebyscore ( key ,  0 ,  window_start ) 
+        
+        # Contar requests en la ventana 
+        pipe . zcard ( key ) 
+        
+        # Añadir nuevo request 
+        pipe . zadd ( key ,  { str ( current ) :  current } ) 
+        
+        # Establecer expiración 
+        pipe . expire ( key ,  window ) 
+        
+        results  =  pipe . execute ( ) 
+        request_count  =  results [ 1 ] 
+        
+        return  request_count  <  limit
+
+ # Uso del sistema de cache 
+cache  =  CacheDistribuido ( ) 
+
+@cache . cache_query ( ttl = 60 )   # Cache por 60 segundos 
+def  obtener_usuario_detallado ( user_id ) : 
+    """Consulta pesada a base de datos""" 
+    time . sleep ( 2 )   # Simular consulta lenta 
+    return  { 
+        "id" :  user_id , 
+        "nombre" :  f"Usuario  { user_id } " , 
+        "datos" :  "..."  *  1000 
+    } 
+
+# Primer llamado: va a la DB 
+usuario1  =  obtener_usuario_detallado ( 1 )   # ~2 segundos 
+
+# Segundo llamado: viene del cache 
+usuario2  =  obtener_usuario_detallado ( 1 )   # ~0.001 segundos 
+
+VoltDB: Base de Datos Transaccional en Memoria
+SQL
+
+-- VoltDB: SQL + In-Memory + ACID 
+CREATE  TABLE  transacciones_financieras  ( 
+    id  BIGINT  NOT  NULL , 
+    cuenta_origen  BIGINT , 
+    cuenta_destino  BIGINT , 
+    monto  DECIMAL , 
+    fecha  TIMESTAMP , 
+    estado  VARCHAR ( 20 ) , 
+    PRIMARY  KEY  ( id ) 
+) ; 
+
+-- Procedimientos almacenados para lógica de negocio 
+CREATE  PROCEDURE  
+    procesar_transferencia 
+ PARTITION  ON  TABLE  transacciones_financieras 
+ COLUMN  cuenta_origen
+ AS 
+    INSERT  INTO  transacciones_financieras 
+     VALUES  ( ? ,  ? ,  ? ,  ? ,  NOW ( ) ,  'PROCESANDO' ) ; 
+    
+    UPDATE  cuentas 
+     SET  saldo  =  saldo  -  ? 
+     WHERE  id  =  ? ; 
+    
+    UPDATE  cuentas 
+     SET  saldo  =  saldo  +  ? 
+     WHERE  id  =  ? ; 
+    
+    UPDATE  transacciones_financieras 
+     SET  estado  =  'COMPLETADA'  
+    WHERE  id  =  ? ; 
+
+5. BASES DE DATOS DE SERIES DE TIEMPO
+Características Únicas
+pitón
+
+"""
+📈 BASES DE SERIES DE TIEMPO (TSDB):
+• Optimizadas para datos temporales
+• Compresión eficiente
+• Consultas por rangos de tiempo
+• Downsampling automático
+
+Ejemplos: InfluxDB, TimescaleDB, Prometheus, ClickHouse
+""" 
+
+InfluxDB (TSDB especializada)
+SQL
+
+-- Lenguaje de consulta Flux de InfluxDB 
+ from  (  bucket:  "iot_sensors"  ) 
+   |  >  range  (  start  :  -  1  h  ) 
+   |  >  filter  (  fn:  (  r  )   =  >  r  .  _measurement  =  =   "temperature"  ) 
+   |  >  filter  (  fn:  (  r  )   =  >  r  .  sensor_id  =  =   "sensor_001"  ) 
+   |  >  aggregateWindow  (  every:  1  m  ,  fn: mean  ) 
+   |  >  yield  (  name:  "mean_temperature"  ) 
+
+ -- Los datos se almacenan como: 
+ -- Measurement, Tag1=Value1, Tag2=Value2 Field1=Value, Field2=Value Timestamp 
+
+TimescaleDB (PostgreSQL + Series temporales)
+SQL
+
+-- TimescaleDB: PostgreSQL con superpoderes de series de tiempo 
+
+-- Crear tabla como hypertable 
+CREATE  TABLE  metricas_iot  ( 
+    tiempo TIMESTAMPTZ  NOT  NULL , 
+    dispositivo_id  TEXT  NOT  NULL , 
+    temperatura  DOUBLE  PRECISION , 
+    humedad  DOUBLE  PRECISION , 
+    presion  DOUBLE  PRECISION 
+) ; 
+
+-- Convertir a hypertable 
+SELECT  create_hypertable ( 'metricas_iot' ,  'tiempo' ) ; 
+
+-- Consultas optimizadas para tiempo 
+SELECT  
+    time_bucket ( '1 hour' ,  tiempo )  as  hora , 
+    dispositivo_id , 
+    avg ( temperatura )  as  temp_promedio , 
+    max ( temperatura )  as  temp_maxima
+ FROM  metricas_iot
+ WHERE  tiempo  >  NOW ( )  -  INTERVAL  '7 days' 
+GROUP  BY  hora ,  dispositivo_id
+ ORDER  BY  hora  DESC ; 
+
+-- Políticas de retención automática 
+SELECT  add_retention_policy ( 'metricas_iot' ,  INTERVAL  '90 days' ) ; 
+
+Python con TimescaleDB
+pitón
+
+importar  psycopg2
+ importar  pandas  como  pd
+ desde  datetime  importar  datetime  ,  timedelta
+
+ clase   SistemaIoT  : 
+     def   __init__  (  auto  )  : 
+        self.conn ​ ​  =  psycopg2.connect ​ ​  ( 
+            nombre_base_datos  =  'iot_db'  , 
+            usuario  =  'admin'  , 
+            contraseña  =  'secreto'  , 
+            host  =  'localhost' 
+         ) 
+    
+     def   insertar_metricas  (  self  ,  dispositivo_id  ,  métricas  )  : 
+         """Inserción eficiente de datos temporales""" 
+         with  self  .  conexión  .  cursor  (  )   as  cursor  : 
+             # Usar copy_from para inserción masiva 
+            datos  =   [  ] 
+             para  marca de tiempo  ,  valores  en  métricas  .  elementos  (  )  : 
+                datos  .append ​  (  ( 
+                    marca de tiempo  , 
+                    dispositivo_id  , 
+                    valores  .get  ,  (  'temperatura  )  ' 
+                    valores  .  get  (  'humedad'  )  , 
+                    valores  .  get  (  'presion'  ) 
+                 )  ) 
+            
+             # Crear DataFrame y usar copy_expert 
+            df  =  pd  .  DataFrame  (  datos  ,  columnas  =  [ 
+                 'tiempo'  ,   'dispositivo_id'  ,  
+                 'temperatura'  ,   'humedad'  ,   'presion' 
+             ]  ) 
+            
+             de  io  import  StringIO
+            salida  =  StringIO  (  ) 
+            df  .  to_csv  (  salida  ,  sep  =  '\t'  ,  encabezado  =  False  ,  índice  =  False  ) 
+            producción .  buscar  (  0  ) 
+            
+            cursor  .copy_expert  " COPIAR  ( 
+                 metricas_iot DESDE STDIN CON (FORMATO CSV, DELIMITADOR '\t')"  , 
+                producción
+             ) 
+            
+            ser  .  conexión  .  commit  (  ) 
+    
+     def   obtener_tendencias  (  self  ,  dispositivo_id  ,  dias  =  7  )  : 
+         """Análisis de tendencias temporales""" 
+         with  self  .  conexión  .  cursor  (  )   como  cursor  : 
+            cursor  .ejecutar  (  "  ""
+                SELECCIONAR 
+                    time_bucket('1 hora', tiempo) como bucket,
+                    AVG(temperatura) como temp_avg,
+                    PERCENTIL_CONT(0.5) DENTRO DEL GRUPO (ORDENAR POR temperatura) como temp_median,
+                    MAX(temperatura) como temp_max,
+                    MIN(temperatura) como temp_min
+                DESDE metricas_iot
+                DONDE dispositivo_id = %s
+                Y tiempo > AHORA() - INTERVALO %s
+                AGRUPAR POR cubo
+                ORDENAR POR cubo DESC
+            """  ,   (  dispositivo_id  ,   f'  {  dias  }  días  )  ) 
+            
+             regresa  cursor  .fetchall  (  )  ' 
+
+Casos de Uso de TSDB
+pitón
+
+"""
+📋 APLICACIONES COMUNES:
+
+1. IoT y Sensores
+   • Dispositivos inteligentes
+   • Sensores industriales
+   • Monitoreo ambiental
+
+2. Métricas de Aplicaciones
+   • APM (Application Performance Monitoring)
+   • Logs de servidores
+   • Métricas de negocio
+
+3. Finanzas
+   • Precios de acciones
+   • Transacciones en tiempo real
+   • Análisis de mercado
+
+4. DevOps
+   • Métricas de infraestructura
+   • Logs de contenedores
+   • Monitoreo de servicios
+""" 
+
+6. BASES DE DATOS GRÁFICAS
+Conceptos Fundamentales
+pitón
+
+"""
+🕸️ CONCEPTOS DE BASES GRÁFICAS:
+
+Nodos (Vértices):
+• Entidades (personas, productos, lugares)
+• Propiedades (atributos)
+
+Relaciones (Aristas/Edges):
+• Conexiones entre nodos
+• Direccionales o no direccionales
+• También pueden tener propiedades
+
+Ejemplos: Neo4j, Amazon Neptune, JanusGraph, ArangoDB
+""" 
+
+Neo4j (Líder en bases gráficas)
+cifrar
+
+--  Cypher Query  Language  ( Neo4j ) 
+
+// Crear nodos 
+CREATE  ( juan : Persona  { 
+    nombre :  "Juan Pérez" , 
+    edad :  30 , 
+    email :  "juan@email.com" 
+} ) 
+
+CREATE  ( maria : Persona  { 
+    nombre :  "María García" , 
+    edad :  28 
+} ) 
+
+CREATE  ( python : Lenguaje  { 
+    nombre :  "Python" , 
+    tipo :  "Programación" 
+} ) 
+
+// Crear relaciones 
+CREATE  ( juan ) - [ : AMIGO_DE  { 
+    desde :  "2020-01-15" , 
+    cercania :  "alta" 
+} ] -> ( maria ) 
+
+CREATE  ( juan ) - [ : SABE ] -> ( python ) 
+CREATE  ( maria ) - [ : ESTA_APRENDIENDO ] -> ( python ) 
+
+// Consultas de grafos 
+// Encontrar amigos de amigos 
+MATCH  ( p : Persona  { nombre :  "Juan Pérez" } ) - [ : AMIGO_DE * 2 .. 2 ] - ( amigoDeAmigo ) 
+RETURN  amigoDeAmigo . nombre
+
+ // Recomendaciones: Personas que saben lo mismo que Juan 
+MATCH  ( juan : Persona  { nombre :  "Juan Pérez" } ) - [ : SABE ] -> ( lenguaje ) <- [ : SABE ] - ( personaSimilar ) 
+WHERE  juan  <>  personaSimilar
+ RETURN  personaSimilar . nombre ,  COUNT ( lenguaje )  AS  lenguajesEnComun
+ ORDER  BY  lenguajesEnComun  DESC 
+
+Python con Neo4j
+pitón
+
+from  neo4j  import  GraphDatabase
+ import  pandas  as  pd
+
+ class  SistemaRecomendacionGrafo : 
+    def  __init__ ( self ,  uri ,  user ,  password ) : 
+        self . driver  =  GraphDatabase . driver ( uri ,  auth = ( user ,  password ) ) 
+    
+    def  close ( self ) : 
+        self . driver . close ( ) 
+    
+    def  crear_grafo_productos ( self ) : 
+        """Crear grafo de productos y relaciones""" 
+        with  self . driver . session ( )  as  session : 
+            # Crear nodos de productos 
+            session . run ( """
+                CREATE (p1:Producto {
+                    id: 'P001',
+                    nombre: 'Laptop Gaming',
+                    categoria: 'Electrónica',
+                    precio: 1200
+                })
+                CREATE (p2:Producto {
+                    id: 'P002',
+                    nombre: 'Mouse Gaming',
+                    categoria: 'Periféricos',
+                    precio: 80
+                })
+                CREATE (p3:Producto {
+                    id: 'P003',
+                    nombre: 'Teclado Mecánico',
+                    categoria: 'Periféricos',
+                    precio: 120
+                })
+            """ ) 
+            
+            # Crear relaciones 
+            session . run ( """
+                MATCH (p1:Producto {id: 'P001'})
+                MATCH (p2:Producto {id: 'P002'})
+                MATCH (p3:Producto {id: 'P003'})
+                CREATE (p1)-[:COMPATIBLE_CON]->(p2)
+                CREATE (p1)-[:COMPATIBLE_CON]->(p3)
+                CREATE (p2)-[:RELACIONADO_A]->(p3)
+            """ ) 
+    
+    def  recomendar_productos ( self ,  producto_id ) : 
+        """Recomendar productos basados en relaciones""" 
+        with  self . driver . session ( )  as  session : 
+            result  =  session . run ( """
+                MATCH (p:Producto {id: $producto_id})-[:COMPATIBLE_CON|RELACIONADO_A*1..2]-(recomendado)
+                WHERE p <> recomendado
+                RETURN DISTINCT recomendado.id as id,
+                       recomendado.nombre as nombre,
+                       recomendado.precio as precio,
+                       COUNT(*) as fuerza_relacion
+                ORDER BY fuerza_relacion DESC
+                LIMIT 5
+            """ ,  producto_id = producto_id ) 
+            
+            return  [  dict  (  registro  )   para  registro  en  resultado  ] 
+    
+     def   analizar_red_clientes  (  self  )  : 
+         """Análisis de red de clientes""" 
+         with  self  .  conductor  .  sesión  (  )   como  sesión  : 
+            resultado  =  sesión.run "  (  "   
+                Encontrar comunidades utilizando el algoritmo de Lovaina
+                LLAMA a gds.graph.project(
+                    'clientes rojos',
+                    'Cliente',
+                    {
+                        HA_COMPRADO_JUNTO: {
+                            orientación: 'NO DIRIGIDA',
+                            propiedades: 'peso'
+                        }
+                    }
+                )
+                
+                LLAMAR gds.louvain.stream('clientes-rojo')
+                YIELD nodeId, communityId
+                DEVUELVE gds.util.asNode(nodeId).id como client_id,
+                       communityId como comunidad,
+                       COUNT(*) como tamaño de la comunidad
+                ORDENAR POR talla_comunidad DESC
+            """ ) 
+            
+             return  pd  .  DataFrame  (  [  dict  (  registro  )   para  el registro  en  el resultado  ]  ) 
+
+ # Uso del sistema 
+sistema =  SistemaRecomendacionGrafo ( "bolt://localhost:7687" ,  "neo4j" ,  "password" ) 
+
+# Crear datos de ejemplo 
+sistema . crear_grafo_productos ( ) 
+
+# Obtener recomendaciones 
+recomendaciones  =  sistema . recomendar_productos ( "P001" ) 
+print ( "Productos recomendados:" ,  recomendaciones ) 
+
+sistema . close ( ) 
+
+Casos de Uso de Bases Gráficas
+pitón
+
+"""
+📋 APLICACIONES IDEALES:
+
+1. Sistemas de Recomendación
+   • "Clientes que compraron X también compraron Y"
+   • Recomendaciones de contenido
+   • Matchmaking en redes sociales
+
+2. Redes Sociales
+   • Amistades y conexiones
+   • Seguidores y seguidos
+   • Grupos y comunidades
+
+3. Detección de Fraude
+   • Patrones de transacciones
+   • Redes de fraude
+   • Análisis de comportamiento
+
+4. Gestión del Conocimiento
+   • Grafos de conocimiento
+   • Ontologías y taxonomías
+   • Sistemas expertos
+
+5. IoT y Dispositivos
+   • Redes de sensores
+   • Relaciones entre dispositivos
+   • Análisis de dependencias
+""" 
+
+7. BASES DE DATOS ESPACIALES
+PostGIS (Extensión de PostgreSQL)
+SQL
+
+-- PostGIS: PostgreSQL con capacidades espaciales 
+
+-- Crear tabla con geometrías 
+CREATE  TABLE  lugares  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    nombre  VARCHAR ( 100 ) , 
+    tipo  VARCHAR ( 50 ) , 
+    ubicacion GEOGRAPHY ( POINT ,  4326 ) ,   -- Lat/Long 
+    area GEOGRAPHY ( POLYGON ,  4326 )       -- Polígonos 
+) ; 
+
+-- Insertar datos espaciales 
+INSERT  INTO  lugares  ( nombre ,  tipo ,  ubicacion )  VALUES 
+( 'Oficina Central' ,  'oficina' ,  
+    ST_GeogFromText ( 'POINT(-3.703790 40.416775)' ) ) ,   -- Madrid 
+( 'Almacén Norte' ,  'almacen' , 
+    ST_GeogFromText ( 'POINT(-0.887712 41.648823)' ) ) ;    -- Zaragoza 
+
+-- Consultas espaciales 
+-- 1. Distancia entre puntos 
+SELECT  
+    a . nombre  as  lugar_a , 
+    b . nombre  as  lugar_b , 
+    ST_Distance ( a . ubicacion ,  b . ubicacion )  as  distancia_metros
+ FROM  lugares a ,  lugares b
+ WHERE  a . id  =  1  AND  b . id  =  2 ; 
+
+-- 2. Puntos dentro de un radio 
+SELECT  nombre ,  tipo
+ FROM  lugares
+ WHERE  ST_DWithin ( 
+    ubicacion , 
+    ST_GeogFromText ( 'POINT(-3.703790 40.416775)' ) , 
+    5000   -- 5km de radio 
+) ; 
+
+-- 3. Intersección de áreas 
+SELECT  l1 . nombre ,  l2 . nombre
+ FROM  lugares l1 ,  lugares l2
+ WHERE l1.id ​ ​  <  l2.id ​  > 
+ AND  ST_Intersects  (  l1.área ​ ​  ,  l2.área ​ ​  )  ; 
+
+ -- 4. Buffer alrededor del punto 
+ SELECT  ST_AsText  ( 
+    ST_Buffer  ( 
+        ST_GeogFromText  (  'POINT(-3.703790 40.416775)'  )  , 
+         1000    -- 1 km de búfer 
+     ) 
+ )   como  area_buffer  ; 
+
+Sistema de Geolocalización con PostGIS
+pitón
+
+importar  psycopg2
+ de  psychopg2  .  extras  importar  RealDictCursor
+ desde  geopy  .  distancia  importar  distancia
+
+ clase   SistemaGeolocalizacion  : 
+     def   __init__  (  self  )  : 
+        yo  .  conn  =  psychopg2  .  connect  ( 
+            nombre_base_de_datos  =  'geodb'  , 
+            usuario  =  'postgres'  , 
+            contraseña  =  'secreto'  , 
+            host  =  'localhost' 
+         ) 
+        self.conn.autocommit  ,  )  metros  cercas  =   True 
+    
+     def   buscar_cercanos  (  self  ,  lat  ,  lon  ,  radio_km  =  type  "  None  a  : 
+         coordenada 
+         with  self.conn.cursor  (  cursor_factory  :  cursor  =  a  lugares  RealDictCursor  )   as  una  Buscar 
+             # Convertir radio 
+            radio_metros  =  radio_km  *   1000 
+            
+            consulta  =   """
+                SELECCIONAR 
+                    identificación,
+                    nombre,
+                    tipo,
+                    ST_X(ubicacion::geometria) como longitud,
+                    ST_Y(ubicacion::geometria) como latitud,
+                    ST_Distance(ubicacion, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geografía) as distancia_metros
+                DESDE lugares
+                DONDE ST_DWithin(
+                    ubicación,
+                    ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geografía,
+                    %s
+                )
+            """ 
+            
+            params  =  [ lon ,  lat ,  lon ,  lat ,  radio_metros ] 
+            
+            if  tipo : 
+                query  +=  " AND tipo = %s" 
+                params . append ( tipo ) 
+            
+            query  +=  " ORDER BY distancia_metros" 
+            
+            cursor . execute ( query ,  params ) 
+            return  cursor . fetchall ( ) 
+    
+    def  calcular_ruta_optima ( self ,  puntos ) : 
+        """Calcular ruta óptima usando PostGIS y pgRouting""" 
+        with  self . conn . cursor ( )  as  cursor : 
+            # Asumiendo que tenemos una tabla de calles con pgRouting 
+            cursor . execute ( """
+                SELECT 
+                    seq,
+                    node,
+                    edge,
+                    cost,
+                    agg_cost,
+                    ST_AsText(geom) as geometria
+                FROM pgr_dijkstra(
+                    'SELECT id, source, target, cost, reverse_cost FROM calles',
+                    %s,  -- nodo inicio
+                    %s,  -- nodo fin
+                    directed := true
+                ) as ruta
+                JOIN calles ON ruta.edge = calles.id
+                ORDER BY seq
+            """ ,  ( puntos [ 0 ] ,  puntos [ 1 ] ) ) 
+            
+            return  cursor . fetchall ( ) 
+    
+    def  densidad_puntos ( self ,  area_geojson ) : 
+        """Calcular densidad de puntos en un área""" 
+        with  self . conn . cursor ( )  as  cursor : 
+            cursor . execute ( """
+                WITH area AS (
+                    SELECT ST_GeomFromGeoJSON(%s)::geography as geom
+                ),
+                puntos_en_area AS (
+                    SELECT COUNT(*) as total
+                    FROM lugares l, area a
+                    WHERE ST_Within(l.ubicacion::geometry, a.geom::geometry)
+                ),
+                area_metros AS (
+                    SELECT ST_Area(geom) as area_m2
+                    FROM area
+                )
+                SELECT 
+                    pa.total as puntos,
+                    aa.area_m2,
+                    (pa.total / aa.area_m2 * 1000000) as densidad_por_km2
+                FROM puntos_en_area pa, area_metros aa
+            """ ,  ( area_geojson , ) ) 
+            
+            return  cursor . fetchone ( ) 
+
+# Ejemplo de uso 
+sistema  =  SistemaGeolocalizacion ( ) 
+
+# Buscar restaurantes cercanos a Madrid 
+restaurantes  =  sistema . buscar_cercanos ( 
+    lat = 40.416775 , 
+    lon = - 3.703790 , 
+    radio_km = 2 , 
+    tipo = 'restaurante' 
+) 
+
+for  r  in  restaurantes : 
+    print ( f" { r [ 'nombre' ] }  -  { r [ 'distancia_metros' ] : .0f } m" ) 
+
+Casos de Uso de Bases Espaciales
+pitón
+
+"""
+📋 APLICACIONES ESPECIALIZADAS:
+
+1. Sistemas GIS
+   • Mapas interactivos
+   • Planificación urbana
+   • Cartografía
+
+2. Logística y Transporte
+   • Optimización de rutas
+   • Seguimiento de flotas
+   • Gestión de almacenes
+
+3. Real Estate
+   • Búsqueda de propiedades
+   • Análisis de mercados
+   • Valoración de terrenos
+
+4. Agricultura de Precisión
+   • Monitoreo de cultivos
+   • Optimización de riego
+   • Análisis de suelos
+
+5. Telecomunicaciones
+   • Planificación de redes
+   • Análisis de cobertura
+   • Ubicación de antenas
+""" 
+
+8. BASES DE DATOS DISTRIBUIDAS
+Características de Sistemas Distribuidos
+pitón
+
+"""
+🌐 BASES DISTRIBUIDAS:
+• Datos replicados en múltiples nodos
+• Tolerancia a fallos
+• Escalabilidad horizontal
+• Consistencia eventual o fuerte
+
+Ejemplos: Cassandra, CockroachDB, YugabyteDB, Google Spanner
+""" 
+
+Teorema CAP (Teorema de Brewer)
+pitón
+
+"""
+🎯 TEOREMA CAP:
+En sistemas distribuidos, solo puedes tener 2 de 3:
+
+1. Consistencia (Consistency)
+   • Todos los nodos ven los mismos datos al mismo tiempo
+
+2. Disponibilidad (Availability)
+   • El sistema responde siempre, incluso con fallos
+
+3. Tolerancia a Particiones (Partition Tolerance)
+   • El sistema funciona aunque se pierda comunicación entre nodos
+
+Elecciones comunes:
+• CP: Consistencia + Particiones (MongoDB, Redis)
+• AP: Disponibilidad + Particiones (Cassandra, DynamoDB)
+• CA: Consistencia + Disponibilidad (Bases relacionales tradicionales)
+""" 
+
+CockroachDB (compatible con PostgreSQL, distribuida)
+SQL
+
+-- CockroachDB: SQL distribuido 
+
+-- Crear tabla distribuida 
+CREATE  TABLE  transacciones_globales  ( 
+    id UUID  PRIMARY  KEY  DEFAULT  gen_random_uuid ( ) , 
+    usuario_id  INT , 
+    monto  DECIMAL , 
+    moneda  VARCHAR ( 3 ) , 
+    fecha  TIMESTAMP  DEFAULT  now ( ) , 
+    INDEX  idx_usuario  ( usuario_id ) 
+) ; 
+
+-- La tabla se distribuye automáticamente 
+-- CockroachDB decide la mejor distribución 
+
+-- Consultas distribuidas funcionan como PostgreSQL 
+SELECT  
+    usuario_id , 
+    COUNT ( * )  as  total_transacciones , 
+    SUM ( monto )  as  volumen_total
+ FROM  transacciones_globales
+ WHERE  fecha  >=  '2024-01-01' 
+GROUP  BY  usuario_id
+ ORDER  BY  volumen_total  DESC 
+LIMIT  10 ; 
+
+-- Transacciones distribuidas 
+BEGIN ; 
+
+UPDATE  cuentas 
+ SET  saldo  =  saldo  -  100  
+WHERE  id  =  1  
+AND  ubicacion  =  'nodo_usa' ; 
+
+UPDATE  cuentas 
+ SET  saldo  =  saldo  +  100  
+WHERE  id  =  2  
+AND  ubicacion  =  'nodo_europa' ; 
+
+COMMIT ;   -- Commit atómico distribuido 
+
+Cassandra (Distribuida, column-family)
+pitón
+
+de  cassandra  .  cluster  importar  Cluster
+ de  cassandra  .  consulta  importar  SimpleStatement
+ de  cassandra  .  políticas  importar  DCAwareRoundRobinPolicy
+
+ class   SistemaDistribuidoCassandra  : 
+     def   __init__  (  self  ,  contact_points  )  : 
+         # Conectar a cluster distribuido 
+          mismo.clúster yo ​  =  Clúster  ( 
+            puntos de contacto  , 
+            política_de_equilibrio_de_carga  =  DCAwareRoundRobinPolicy  (  local_dc  =  'DC1'  ) 
+         ) 
+        ser  .  sesión  =  yo  .  grupo  .  connect  (  ) 
+        
+         # Crear espacio de claves con replicación 
+        self.sesion.exe ​ ​  (  "  "  " 
+            CREAR ESPACIO DE LLAVES SI NO EXISTE sistema_distribuido
+            CON replicación = {
+                'clase': 'Estrategia de topología de red',
+                'DC1': 3,
+                'DC2': 2
+            }
+        """  ) 
+        
+        ser  .  sesión  .  set_keyspace  (  'sistema_distribuido'  ) 
+    
+     def   crear_tabla_distribuida  (  self  )  : 
+         """Crear tabla con particionamiento y clustering""" 
+        self.sesion.exe ​ ​  (  "  "  " 
+            CREAR TABLA SI NO EXISTE metricas_globales (
+                texto de la región,
+                fecha marca de tiempo,
+                texto del nombre_métrico,
+                valor_métrico doble,
+                etiquetas map<texto, texto>,
+                CLAVE PRINCIPAL ((región, fecha), nombre_métrico)
+            ) CON ORDEN DE AGRUPAMIENTO POR (nombre_métrico ASC)
+        """ ) 
+    
+     def   escribir_metricas  (  self  ,  métricas  )  : 
+         """Escritura distribuida con consistencia configurable""" 
+         from  cassandra  import  ConsistencyLevel
+        
+        insert_stmt  =  self.sesión.preparar ​ ​  "  (  "  " 
+            INSERTAR EN metricas_globales 
+            (región, fecha, nombre_métrico, valor_métrico, etiquetas)
+            VALORES (?, ?, ?, ?, ?)
+        """  ) 
+        
+         # Configurar nivel de consistencia 
+        sentencia_insertar  .  nivel_consistencia  =  NivelConsistencia  .  QUÓRUM
+        
+        lote  =   [  ] 
+         para  métricas  en  métricas  : 
+            lote.adjuntar ​ ​  (  ( 
+                métrica  [  'región'  ]  , 
+                métrica  [  'fecha'  ]  , 
+                métrica  [  'nombre'  ]  , 
+                métrica  [  'valor'  ]  , 
+                metrica  .  get  (  'tags'  ,   {  }  ) 
+             )  ) 
+        
+         # Ejecutar en paralelo 
+         from  concurrent  .  futures  import  ThreadPoolExecutor
+        
+         def   insert_metric  (  parámetros  )  : 
+            self  .  session  .  execute  (  insert_stmt  ,  params  ) 
+        
+         con  ThreadPoolExecutor  (  max_workers  =  10  )   como  ejecutor  : 
+            ejecutor  .  map  (  insert_metric  ,  batch  ) 
+    
+     def   leer_metricas_distribuidas  (  self  ,  region ,  fecha_inicio ,  fecha_fin ) : 
+        """Lectura desde múltiples nodos""" 
+        query  =  """
+            SELECT 
+                metric_name,
+                AVG(metric_value) as avg_value,
+                MAX(metric_value) as max_value,
+                MIN(metric_value) as min_value
+            FROM metricas_globales
+            WHERE region = ?
+            AND fecha >= ?
+            AND fecha <= ?
+            GROUP BY metric_name
+        """ 
+        
+        prepared  =  self . session . prepare ( query ) 
+        prepared . consistency_level  =  ConsistencyLevel . LOCAL_QUORUM
+        
+        rows  =  self . session . execute ( prepared ,  ( 
+            region , 
+            fecha_inicio , 
+            fecha_fin
+         ) ) 
+        
+        return  list ( rows ) 
+
+# Uso del sistema distribuido 
+sistema  =  SistemaDistribuidoCassandra ( [ 
+    'node1.domain.com' , 
+    'node2.domain.com' ,  
+    'node3.domain.com' 
+] ) 
+
+# Datos de ejemplo 
+metricas  =  [ 
+    { 
+        'region' :  'us-east' , 
+        'fecha' :  '2024-01-15 10:00:00' , 
+        'name' :  'cpu_usage' , 
+        'value' :  75.5 , 
+        'tags' :  { 'host' :  'server1' ,  'app' :  'web' } 
+    } , 
+    # ... más métricas 
+] 
+
+sistema . escribir_metricas ( metricas ) 
+resultados  =  sistema . leer_metricas_distribuidas ( 
+    'us-east' , 
+    '2024-01-15' , 
+    '2024-01-16' 
+) 
+
+Patrones de Distribución
+pitón
+
+"""
+🔧 PATRONES COMUNES:
+
+1. Sharding (Particionamiento)
+   • Dividir datos en fragmentos (shards)
+   • Cada shard en nodo diferente
+   • Ejemplo: MongoDB sharding
+
+2. Réplica Maestro-Esclavo
+   • Un nodo maestro para escrituras
+   • Múltiples esclavos para lecturas
+   • Ejemplo: MySQL replication
+
+3. Réplica Multi-Maestro
+   • Múltiples nodos aceptan escrituras
+   • Resolución de conflictos necesaria
+   • Ejemplo: Cassandra
+
+4. Peer-to-Peer
+   • Todos los nodos iguales
+   • Distribución automática
+   • Ejemplo: CockroachDB
+
+5. Federación
+   • Múltiples bases independientes
+   • Vista unificada a través de middleware
+   • Ejemplo: PostgreSQL FDW
+""" 
+
+9. BASES DE DATOS MÓVILES Y EMBEBIDAS
+SQLite (La más usada embebida)
+pitón
+
+"""
+📱 SQLITE:
+• Biblioteca en C, no servidor
+• Base de datos en un solo archivo
+• Zero-configuration
+• Transaccionales ACID
+• Usada en Android, iOS, navegadores, aplicaciones desktop
+""" 
+
+Ejemplo con Python SQLite:
+pitón
+
+importar  sqlite3
+ importar  json
+ desde  datetime  importar  datetime
+
+ clase   AplicacionMovil  : 
+     def   __init__  (  self  ,  db_path  =  'app.db'  )  : 
+        self.conn ​ ​  =  sqlite3.connect ​ ​  (  ruta_de_base_de_datos  ,  comprobar_mismo_hilo  =  False  ) 
+        self  .  conn  .  row_factory  =  sqlite3  .  Row
+        ser  .  _inicializar_db  (  ) 
+    
+     def   _inicializar_db  (  self  )  : 
+         """Crear tablas necesarias""" 
+        cursor  =  yo  .  conexión  .  cursor  (  ) 
+        
+         # Tabla de usuarios locales 
+        cursor  .ejecutar  (  "  ""
+            CREAR TABLA SI NO EXISTE usuarios (
+                id ENTERO CLAVE PRIMARIA AUTOINCREMENTO,
+                nombre de usuario TEXTO ÚNICO NO NULO,
+                correo electrónico TEXTO ÚNICO,
+                datos JSON,
+                sincronizado BOOLEAN DEFAULT 0,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """  ) 
+        
+         # Tabla de productos sin conexión 
+        cursor  .ejecutar  (  "  ""
+            CREAR TABLA SI NO EXISTE productos (
+                id ENTERO CLAVE PRIMARIA,
+                nombre TEXTO NO NULO,
+                precio REAL,
+                stock ENTERO,
+                categoría TEXTO,
+                imagen_url TEXTO,
+                ultima_actualizacion MARCA DE TIEMPO
+            )
+        """ ) 
+        
+        # Tabla para sincronización 
+        cursor . execute ( """
+            CREATE TABLE IF NOT EXISTS sincronizaciones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tabla TEXT NOT NULL,
+                accion TEXT NOT NULL,  -- INSERT, UPDATE, DELETE
+                datos JSON NOT NULL,
+                sincronizado BOOLEAN DEFAULT 0,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """ ) 
+        
+        self . conn . commit ( ) 
+    
+    def  operacion_offline ( self ,  producto_id ,  cantidad ) : 
+        """Operación que funciona sin conexión""" 
+        try : 
+            cursor  =  self . conn . cursor ( ) 
+            
+            # Verificar stock local 
+            cursor . execute ( 
+                "SELECT stock FROM productos WHERE id = ?" , 
+                ( producto_id , ) 
+            ) 
+            resultado  =  cursor . fetchone ( ) 
+            
+            if  not  resultado  or  resultado [ 'stock' ]  <  cantidad : 
+                return  { 
+                    'success' :  False , 
+                    'error' :  'Stock insuficiente' 
+                } 
+            
+            # Actualizar stock local 
+            cursor . execute ( 
+                "UPDATE productos SET stock = stock - ? WHERE id = ?" , 
+                ( cantidad ,  producto_id ) 
+            ) 
+            
+            # Registrar para sincronización 
+            cursor . execute ( """
+                INSERT INTO sincronizaciones (tabla, accion, datos)
+                VALUES (?, ?, ?)
+            """ ,  ( 
+                'ventas' , 
+                'INSERT' , 
+                json . dumps ( { 
+                    'producto_id' :  producto_id , 
+                    'cantidad' :  cantidad , 
+                    'fecha' :  datetime . now ( ) . isoformat ( ) 
+                } ) 
+            ) ) 
+            
+            self . conn . commit ( ) 
+            
+            return  { 
+                'success' :  True , 
+                'message' :  'Venta registrada offline' 
+            } 
+            
+        except  Exception  as  e : 
+            self . conn . rollback ( ) 
+            return  { 
+                'success' :  False , 
+                'error' :  str ( e ) 
+            } 
+    
+    def  sincronizar_con_servidor ( self ) : 
+        """Sincronizar cambios pendientes""" 
+        import  requests
+        
+        cursor  =  self . conn . cursor ( ) 
+        
+        # Obtener cambios pendientes 
+        cursor . execute ( """
+            SELECT * FROM sincronizaciones 
+            WHERE sincronizado = 0
+            ORDER BY fecha
+        """ ) 
+        
+        cambios  =  cursor . fetchall ( ) 
+        
+        for  cambio  in  cambios : 
+            try : 
+                # Enviar al servidor 
+                response  =  requests . post ( 
+                    'https://api.ejemplo.com/sync' , 
+                    json = { 
+                        'tabla' :  cambio [ 'tabla' ] , 
+                        'accion' :  cambio [ 'accion' ] , 
+                        'datos' :  json . loads ( cambio [ 'datos' ] ) 
+                    } , 
+                    timeout = 10 
+                ) 
+                
+                if  response . status_code  ==  200 : 
+                    # Marcar como sincronizado 
+                    cursor . execute ( 
+                        "UPDATE sincronizaciones SET sincronizado = 1 WHERE id = ?" , 
+                        ( cambio [ 'id' ] , ) 
+                    ) 
+                else : 
+                    print ( f"Error sincronizando cambio  { cambio [ 'id' ] } " ) 
+                    
+            except  Exception  as  e : 
+                print ( f"Error de conexión:  { e } " ) 
+                break 
+        
+        self . conn . commit ( ) 
+        
+        # Sincronizar datos del servidor 
+        self . _descargar_actualizaciones ( ) 
+    
+    def  _descargar_actualizaciones ( self ) : 
+        """Descargar actualizaciones del servidor""" 
+        import  requests
+        
+         try : 
+            response  =  requests . get ( 
+                'https://api.ejemplo.com/actualizaciones' , 
+                params = { 'ultima_sincronizacion' :  self . _obtener_ultima_sincronizacion ( ) } , 
+                timeout = 10 
+            ) 
+            
+            if  response . status_code  ==  200 : 
+                actualizaciones  =  response . json ( ) 
+                
+                cursor  =  self . conn . cursor ( ) 
+                
+                for  actualizacion  in  actualizaciones : 
+                    if  actualizacion [ 'accion' ]  ==  'DELETE' : 
+                        cursor . execute ( 
+                            f"DELETE FROM  { actualizacion [ 'tabla' ] }  WHERE id = ?" , 
+                            ( actualizacion [ 'id' ] , ) 
+                        ) 
+                    else : 
+                        # UPSERT 
+                        placeholders  =  ', ' . join ( [ '?'  for  _  in  actualizacion [ 'datos' ] ] ) 
+                        columns  =  ', ' . join ( actualizacion [ 'datos' ] . keys ( ) ) 
+                        values  =  list ( actualizacion [ 'datos' ] . values ( ) ) 
+                        
+                        query  =  f"""
+                            INSERT OR REPLACE INTO  { actualizacion [ 'tabla' ] }  ( { columns } )
+                            VALUES ( { placeholders } )
+                        """ 
+                        
+                        cursor . execute ( query ,  values ) 
+                
+                self . conn . commit ( ) 
+                
+        except  Exception  as  e : 
+            print ( f"Error descargando actualizaciones:  { e } " ) 
+
+# Uso en aplicación móvil 
+app  =  AplicacionMovil ( ) 
+
+# Operación offline 
+resultado  =  app . operacion_offline ( producto_id = 1 ,  cantidad = 2 ) 
+print ( resultado ) 
+
+# Cuando hay conexión 
+app . sincronizar_con_servidor ( ) 
+
+Realm (Base de datos móvil orientada a objetos)
+rápido
+
+// Realm en Swift (iOS) 
+import  RealmSwift 
+
+// Definir modelo 
+class  Producto :  Object  { 
+    @Persisted ( primaryKey :  true )  var  id :  ObjectId 
+    @Persisted  var  nombre :  String 
+    @Persisted  var  precio :  Double 
+    @Persisted  var  stock :  Int 
+    @Persisted  var  fechaActualizacion :  Date 
+} 
+
+// Uso 
+let  realm  =  try !  Realm ( ) 
+
+// Escribir 
+try !  realm . write  { 
+    let  producto  =  Producto ( ) 
+    producto . nombre  =  "Laptop" 
+    producto . precio  =  999.99 
+    producto . stock  =  10 
+    realm . add ( producto ) 
+} 
+
+// Leer 
+let  productos  =  realm . objects ( Producto . self ) 
+    . filter ( "stock > 0" ) 
+    . sorted ( byKeyPath :  "precio" ) 
+
+// Sincronización con Realm Sync 
+let  app  =  App ( id :  "tu-app-id" ) 
+let  user  =  try  await  app . login ( credentials :  . anonymous ) 
+let  config  =  user . flexibleSyncConfiguration ( ) 
+let  realm  =  try  await  Realm ( configuration :  config ) 
+
+Firebase Firestore (Base de datos en la nube para móviles)
+JavaScript
+
+ Firestore en JavaScript 
+ initializeApp   }  from  '   firebase   /app'  ; 
+ import   {  getFirestore  ,  collection  ,  addDoc  ,  query  ,  where  ,  onSnapshot  }   from   'firebase/firestore'  ; 
+
+ // Configurar Firebase 
+ const  app  =   initializeApp  (  firebaseConfig  )  ; 
+ const  db  =   getFirestore  (  app  )  ; 
+
+ // Escribir datos 
+ async   function   agregarProducto  (  producto  )   { 
+     try   { 
+         const  docRef  =   await   addDoc  (  collection  (  db  ,   "  )  ,   { 
+             nombre  :  producto.nombre  (  fecha  , 
+             precio  :  producto.precio  "  ,  ) 
+             stock  :  producto.stock  ,  }  ) 
+             Date  :   new   productos  ; // 
+         Firebase  import  { 
+        consola  .  log  (  "Documento escrito con ID: "  ,  docRef  .  id  )  ; 
+     }   atrapar   (  e  )   { 
+        consola  .  error  (  "Error al agregar documento: "  ,  e  )  ; 
+     } 
+ } 
+
+ // Escuchar cambios en tiempo real 
+ const  q  =   query  (  colección  (  db  ,   "productos"  )  ,   donde  (  "stock"  ,   ">"  ,   0  )  )  ; 
+ const  darse de baja  =   onSnapshot  (  q  ,   (  instantánea  )   =>   { 
+    instantánea  .docChanges ​  (  )  .forEach  "  (  (  cambio  )   =   { 
+         if   (  cambio.type  >  "  ===   agregado  )   { 
+            console.log  ( ​  (  Producto  ,  change.doc.data  { ​  ;  "  ===  )  )  } 
+         if 
+         (   change.type  )  nuevo  "  "   modified  "   : 
+            console.log  ( ​  (  :  ,  change.doc.data ​  change.type  "  }  ===  )  )  ; 
+         if 
+         (   "  "  "  eliminado  Producto   modificado )  { 
+            console . log ( "Producto eliminado: " ,  change . doc . data ( ) ) ; 
+        } 
+    } ) ; 
+} ) ; 
+
+// Offline persistence habilitado por defecto 
+
+10. CÓMO ELEGIR LA BASE DE DATOS CORRECTA
+Matriz de Decisión
+pitón
+
+"""
+🎯 MATRIZ DE SELECCIÓN:
+
+Considera estos factores:
+
+1. Volumen de Datos
+   • Pequeño (< 1GB): SQLite, PostgreSQL
+   • Mediano (1GB-1TB): PostgreSQL, MySQL
+   • Grande (> 1TB): Cassandra, BigQuery, distribuidas
+
+2. Estructura de Datos
+   • Altamente estructurado: Relacional
+   • Semi-estructurado: Documental
+   • No estructurado: Clave-valor
+   • Relacional complejo: Gráfica
+   • Temporal: Series de tiempo
+
+3. Patrón de Acceso
+   • Mayoría lecturas: Cualquiera, optimizar índices
+   • Mayoría escrituras: Cassandra, Kafka
+   • Lecturas complejas: Relacional, Gráfica
+   • Escrituras rápidas: Clave-valor, en memoria
+
+4. Consistencia Requerida
+   • Fuerte (ACID): Relacional, algunos NoSQL
+   • Eventual (BASE): NoSQL, distribuidas
+   • Compensación: SAGA pattern, compensación
+
+5. Escalabilidad
+   • Vertical: Relacional tradicional
+   • Horizontal: NoSQL, distribuidas
+   • Elastic: Cloud databases
+
+6. Presupuesto
+   • Open source: PostgreSQL, MySQL, MongoDB
+   • Commercial: Oracle, SQL Server, Enterprise DB
+   • Cloud managed: RDS, CosmosDB, Firestore
+""" 
+
+Preguntas Clave para Decidir
+pitón
+
+"""
+❓ PREGUNTAS PARA ELEGIR:
+
+1. ¿Cuál es el volumen de datos esperado?
+2. ¿Qué estructura tienen los datos?
+3. ¿Cuál es el patrón de acceso (lectura/escritura)?
+4. ¿Qué nivel de consistencia necesitas?
+5. ¿Necesitas transacciones ACID?
+6. ¿Qué latencia es aceptable?
+7. ¿Cómo escalará el sistema?
+8. ¿Qué presupuesto tienes?
+9. ¿Qué habilidades tiene tu equipo?
+10. ¿Necesitas soporte en la nube?
+""" 
+
+Ejemplos Prácticos de Elección
+pitón
+
+"""
+📋 CASOS REALES:
+
+1. Sistema Bancario
+   • Necesidad: ACID, consistencia fuerte
+   • Elección: PostgreSQL, Oracle
+   • Razón: Transacciones financieras requieren ACID
+
+2. Red Social
+   • Necesidad: Escalabilidad, relaciones complejas
+   • Elección: Neo4j (grafos) + Cassandra (escala)
+   • Razón: Relaciones sociales complejas, gran escala
+
+3. IoT - Sensores
+   • Necesidad: Series temporales, alta escritura
+   • Elección: TimescaleDB, InfluxDB
+   • Razón: Optimizado para datos temporales
+
+4. Carrito de Compras
+   • Necesidad: Sesiones temporales, alta concurrencia
+   • Elección: Redis + PostgreSQL
+   • Razón: Redis para sesiones, PostgreSQL para órdenes
+
+5. Catálogo de Productos
+   • Necesidad: Búsqueda flexible, schema variable
+   • Elección: MongoDB, Elasticsearch
+   • Razón: Datos semi-estructurados, búsqueda poderosa
+
+6. Sistema de Recomendaciones
+   • Necesidad: Análisis de relaciones
+   • Elección: Neo4j, Amazon Neptune
+   • Razón: Relaciones complejas entre productos/usuarios
+
+7. Analytics en Tiempo Real
+   • Necesidad: Procesamiento stream, baja latencia
+   • Elección: Apache Druid, ClickHouse
+   • Razón: Optimizado para agregaciones en tiempo real
+
+8. Aplicación Móvil
+   • Necesidad: Offline-first, sincronización
+   • Elección: SQLite, Realm, Firebase
+   • Razón: Funciona offline, sincroniza cuando hay conexión
+""" 
+
+Arquitecturas híbridas (persistencia políglota)
+pitón
+
+"""
+🏗️ ARQUITECTURAS HÍBRIDAS:
+
+Muchas aplicaciones modernas usan múltiples bases de datos:
+
+Ejemplo: Plataforma de E-commerce
+
+1. PostgreSQL
+   • Usuarios
+   • Órdenes
+   • Inventario
+   • Pagos
+
+2. Redis
+   • Cache de sesiones
+   • Carritos de compra
+   • Contadores de visitas
+   • Leaderboards
+
+3. Elasticsearch
+   • Búsqueda de productos
+   • Logs de aplicación
+   • Analytics
+
+4. MongoDB
+   • Contenido de productos
+   • Reseñas de usuarios
+   • Catálogos flexibles
+
+5. Neo4j
+   • Sistema de recomendaciones
+   • Análisis de relaciones
+
+6. TimescaleDB
+   • Métricas de rendimiento
+   • Análisis temporal de ventas
+
+Ventajas:
+• Usar la mejor herramienta para cada tarea
+• Mejor rendimiento específico
+• Más flexibilidad
+
+Desafíos:
+• Mayor complejidad
+• Múltiples tecnologías para aprender
+• Sincronización entre sistemas
+• Mantenimiento más complejo
+""" 
+
+Tendencias Actuales
+pitón
+
+"""
+🚀 TENDENCIAS 2024:
+
+1. Bases de Datos Multi-Modelo
+   • Una base que soporte múltiples modelos
+   • Ejemplo: PostgreSQL (relacional + JSON + grafos)
+   • Ejemplo: ArangoDB (documentos + grafos + clave-valor)
+
+2. Serverless Databases
+   • Auto-escalado automático
+   • Pago por uso
+   • Sin administración de servidores
+   • Ejemplo: Amazon Aurora Serverless, Firebase
+
+3. Bases de Datos en la Nube
+   • Managed services
+   • Escalabilidad automática
+   • Alta disponibilidad incorporada
+   • Ejemplo: Google Cloud Spanner, Azure Cosmos DB
+
+4. Bases de Datos para Machine Learning
+   • Integración con ML/AI
+   • Vector databases para embeddings
+   • Ejemplo: Pinecone, Weaviate, pgvector
+
+5. Bases de Datos de Búsqueda Especializadas
+   • Optimizadas para full-text search
+   • Búsqueda semántica
+   • Ejemplo: Elasticsearch, Algolia, Typesense
+
+6. Bases de Datos de Bloques (Blockchain)
+   • Inmutabilidad
+   • Descentralización
+   • Transparencia
+   • Ejemplo: BigchainDB, Ethereum
+""" 
+
+CONCLUSIÓN
+Resumen de Tipos Principales
+pitón
+
+"""
+📊 RESUMEN FINAL:
+
+1. Relacionales (SQL)
+   • Para: Datos estructurados, ACID, consultas complejas
+   • Ejemplo: PostgreSQL, MySQL
+
+2. Documentales (NoSQL)
+   • Para: Datos semi-estructurados, schema flexible
+   • Ejemplo: MongoDB, CouchDB
+
+3. Clave-Valor (NoSQL)
+   • Para: Cache, sesiones, datos simples
+   • Ejemplo: Redis, DynamoDB
+
+4. Column-Family (NoSQL)
+   • Para: Big data, análisis, alta escritura
+   • Ejemplo: Cassandra, HBase
+
+5. Gráficas (NoSQL)
+   • Para: Relaciones complejas, redes sociales
+   • Ejemplo: Neo4j, Amazon Neptune
+
+6. Series de Tiempo
+   • Para: Datos temporales, IoT, métricas
+   • Ejemplo: InfluxDB, TimescaleDB
+
+7. En Memoria
+   • Para: Baja latencia, cache, tiempo real
+   • Ejemplo: Redis, Memcached
+
+8. Distribuidas
+   • Para: Escalabilidad global, alta disponibilidad
+   • Ejemplo: CockroachDB, YugabyteDB
+
+9. Móviles/Embebidas
+   • Para: Aplicaciones offline, dispositivos
+   • Ejemplo: SQLite, Realm
+
+10. Espaciales
+    • Para: Datos geográficos, mapas, GIS
+    • Ejemplo: PostGIS, SpatiaLite
+""" 
+
+Recomendación Final
+pitón
+
+"""
+🎯 MI RECOMENDACIÓN:
+
+Para la mayoría de proyectos:
+
+1. Comienza con PostgreSQL
+   • Es versátil y potente
+   • Soporta JSON, arrays, búsqueda full-text
+   • Tiene extensiones para casi todo
+   • Comunidad excelente
+
+2. Agrega Redis para cache y datos temporales
+   • Mejora rendimiento dramáticamente
+   • Simple de implementar
+   • Muy maduro
+
+3. Considera bases especializadas según necesidades
+   • Grafos: Neo4j para relaciones complejas
+   • Búsqueda: Elasticsearch para full-text
+   • Series de tiempo: TimescaleDB para métricas
+   • Móvil: SQLite/Realm para apps offline
+
+4. Evalúa necesidades de escala
+   • Si necesitas escala masiva: Cassandra, ScyllaDB
+   • Si necesitas distribución global: CockroachDB
+   • Si necesitas serverless: Cloud managed services
+
+Recuerda: La mejor base de datos es la que resuelve
+tu problema específico de manera efectiva y mantenible.
+""" 
+
+¿Te gustaría profundizar en algún tipo específico de base de datos o en cómo implementar arquitecturas híbridas? ¡Estoy aquí para ayudarte! 🚀 

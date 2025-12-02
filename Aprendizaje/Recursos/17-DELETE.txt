@@ -1,0 +1,1448 @@
+🗑️ DELETE: Eliminación de Datos en PostgreSQL
+
+El comando DELETE es fundamental para eliminar registros de tus tablas. Es poderoso pero peligroso si no se usa correctamente. Vamos a explorarlo en profundidad.
+ÍNDICE
+
+    Sintaxis Básica
+
+    Condiciones WHERE
+
+    ELIMINAR con UNIONES
+
+    DELETE con Subconsultas
+
+    TRUNCAR vs ELIMINAR
+
+    ELIMINAR con REGRESAR
+
+    DELETE en Cascada
+
+    Eliminación temporal vs. eliminación definitiva
+
+    Buenas Prácticas
+
+    Ejemplos con Python 
+
+1. SINTAXIS BÁSICA
+Forma Estándar
+SQL
+
+-- Sintaxis básica 
+DELETE  FROM  nombre_tabla
+ WHERE  condición ; 
+
+-- Ejemplo concreto 
+DELETE  FROM  empleados
+ WHERE  id  =  1 ; 
+
+Eliminar Todas las Filas (¡EXTREMO PELIGRO!)
+SQL
+
+-- ❌ PELIGROSO: Elimina TODAS las filas de la tabla 
+DELETE  FROM  productos ; 
+
+-- ✅ MEJOR PRÁCTICA: Usar TRUNCATE para vaciar tabla completa 
+TRUNCATE  TABLE  productos ; 
+
+-- ✅ SEGURO: Siempre especificar WHERE 
+DELETE  FROM  logs
+ WHERE  fecha  <  CURRENT_DATE  -  INTERVAL  '90 days' ; 
+
+DELETE con Expresiones
+SQL
+
+-- Usando funciones en WHERE 
+DELETE  FROM  sesiones
+ WHERE  fecha_expiracion  <  CURRENT_TIMESTAMP ; 
+
+-- Usando operaciones matemáticas 
+DELETE  FROM  productos
+ WHERE  stock  =  0  AND  fecha_ingreso  <  CURRENT_DATE  -  INTERVAL  '365 days' ; 
+
+-- Usando múltiples condiciones 
+DELETE  FROM  pedidos
+ WHERE  estado  =  'cancelado' 
+  AND  fecha_pedido  <  '2023-01-01' 
+  AND  total  <  100 ; 
+
+2. CONDICIONES WHERE
+Operadores de Comparación
+SQL
+
+-- Igualdad 
+DELETE  FROM  usuarios  WHERE  id  =  100 ; 
+
+-- Desigualdad 
+DELETE  FROM  productos  WHERE  precio  >  1000  AND  ventas  =  0 ; 
+
+-- BETWEEN 
+DELETE  FROM  logs 
+ WHERE  fecha  BETWEEN  '2020-01-01'  AND  '2020-12-31' ; 
+
+-- IN 
+DELETE  FROM  clientes 
+ WHERE  ciudad  IN  ( 'Ciudad1' ,  'Ciudad2' ,  'Ciudad3' ) ; 
+
+-- LIKE/ILIKE 
+DELETE  FROM  comentarios 
+ WHERE  contenido  ILIKE  '%spam%'  OR  contenido  ILIKE  '%publicidad%' ; 
+
+-- IS NULL 
+DELETE  FROM  empleados 
+ WHERE  fecha_baja  IS  NOT  NULL  
+  AND  fecha_baja  <  CURRENT_DATE  -  INTERVAL  '30 days' ; 
+
+Condiciones Complejas
+SQL
+
+-- Combinación de condiciones 
+DELETE  FROM  inventario 
+ WHERE  
+    ( stock  =  0  AND  fecha_ultimo_movimiento  <  CURRENT_DATE  -  INTERVAL  '180 days' ) 
+    OR  ( activo  =  false  AND  fecha_creacion  <  '2020-01-01' ) 
+    OR  ( costo_mantenimiento  >  valor_actual  *  0.5 ) ; 
+
+-- Usando EXISTS 
+DELETE  FROM  productos p
+ WHERE  NOT  EXISTS  ( 
+    SELECT  1  FROM  pedidos_detalle pd
+     WHERE  pd . producto_id  =  p . id
+     AND  pd . fecha  >  CURRENT_DATE  -  INTERVAL  '365 days' 
+) ; 
+
+3. ELIMINAR CON JOINs
+ELIMINAR con UNIÓN INTERNA
+SQL
+
+-- Eliminar empleados de departamentos desactivados 
+ ELIMINAR   DE  empleados y
+ USANDO  departamentos d
+ DONDE  y  .department_id ​  =  d  .id ​
+ AND  d.active  ELIMINAR  --  =   false  ; 
+
+ solicitudes de clientes inactivos 
+ Eliminar   DE  solicitudes p
+ USANDO  clientes c
+ DONDE  p.client_id .cliente_id  =  cc.id   
+AND  c.active  alternativa  false  =   ' 
+ AND  c.last_login  CURRENT_DATE  INTERVAL  <   FROM   -   ;   365 días  -- 
+
+ Sintaxis 
+ DELETE   solicitudes  ' 
+ DONDE  customer_id  EN   ( 
+     SELECCIONAR  id  DE  clientes 
+     DONDE  activo  =   falso 
+     Y  último_inicio_de_sesión  <   FECHA_ACTUAL   -   INTERVALO   '365 días' 
+ )  ; 
+
+ELIMINAR con UNIR A LA IZQUIERDA
+SQL
+
+-- Eliminar productos nunca vendidos 
+DELETE  FROM  productos p
+ WHERE  NOT  EXISTS  ( 
+    SELECT  1  FROM  pedidos_detalle pd
+     WHERE  pd . producto_id  =  p . id
+ ) ; 
+
+-- O usando LEFT JOIN 
+DELETE  FROM  productos p
+ LEFT  JOIN  pedidos_detalle pd  ON  p . id  =  pd . producto_id
+ WHERE  pd . producto_id  IS  NULL 
+AND  p . fecha_creacion  <  CURRENT_DATE  -  INTERVAL  '180 days' ; 
+
+DELETE Múltiple con JOINs
+SQL
+
+-- Eliminar en cascada manual (cuando no hay FK con CASCADE) 
+BEGIN ; 
+
+-- Primero eliminar detalles 
+DELETE  FROM  detalles_pedido dp
+ USING  pedidos p
+ WHERE  dp . pedido_id  =  p . id
+ AND  p . estado  =  'cancelado' 
+AND  p . fecha  <  '2023-01-01' ; 
+
+-- Luego eliminar pedidos 
+DELETE  FROM  pedidos 
+ WHERE  estado  =  'cancelado' 
+AND  fecha  <  '2023-01-01' ; 
+
+COMMIT ; 
+
+4. DELETE CON SUBCONSULTAS
+Subconsultas Escalares
+SQL
+
+-- Eliminar productos con precio superior al promedio 
+DELETE  FROM  productos 
+ WHERE  precio  >  ( 
+    SELECT  AVG ( precio )  *  1.5  
+    FROM  productos 
+     WHERE  activo  =  true 
+) ; 
+
+-- Eliminar usuarios inactivos 
+DELETE  FROM  usuarios 
+ WHERE  ultimo_login  <  ( 
+    SELECT  CURRENT_DATE  -  INTERVAL  '90 days' 
+)  AND  id  NOT  IN  ( 
+    SELECT  usuario_id  FROM  pedidos 
+     WHERE  fecha  >  CURRENT_DATE  -  INTERVAL  '30 days' 
+) ; 
+
+Subconsultas relacionadas
+SQL
+
+-- Eliminar duplicados (manteniendo el más reciente) 
+DELETE  FROM  registros r1
+ WHERE  EXISTS  ( 
+    SELECT  1  FROM  registros r2
+     WHERE  r2 . email  =  r1 . email
+     AND  r2 . fecha_creacion  >  r1 . fecha_creacion
+ ) ; 
+
+-- Eliminar productos sin stock y sin movimientos recientes 
+DELETE  FROM  productos p
+ WHERE  p . stock  =  0 
+AND  NOT  EXISTS  ( 
+    SELECT  1  FROM  movimientos_inventario m
+     WHERE  m . producto_id  =  p . id
+     AND  m . fecha  >  CURRENT_DATE  -  INTERVAL  '90 days' 
+) ; 
+
+CTEs para DELETE Complejos
+SQL
+
+-- Eliminar datos antiguos con CTE 
+ CON  datos_a_eliminar  AS   ( 
+     SELECT  id 
+     DESDE  registros
+     DONDE  fecha  <   FECHA_ACTUAL   -   INTERVALO   '365 días' 
+     ORDENAR   POR  fecha
+     LIMIT   10000    - Eliminar en lotes 
+ ) 
+ BORRAR   DE  registros
+ DONDE  id  EN   (  SELECCIONAR  id  DE  datos_a_eliminar  )  ; 
+
+ -- Eliminar con procesamiento por lotes usando CTE 
+ DO  $$
+ DECLARAR 
+    tamaño_lote  INT  :  =   1000  ; 
+    filas_eliminadas  INT  :  =  tamaño_lote  ; 
+ COMIENZA 
+     MIENTRAS  filas_eliminadas  =  tamaño_lote  BUCLE 
+         CON  lote  COMO   ( 
+             SELECCIONAR  id 
+             DE  pedidos 
+             WHERE  estado  =   'cancelado' 
+             AND  fecha  <   '2023-01-01' 
+             LIMIT  tamaño_lote
+             PARA   ACTUALIZAR  SALTAR BLOQUEADO
+         ) 
+         ELIMINAR   DE  pedidos 
+         DONDE  id  EN   (  SELECCIONAR  id  DE  lote  )  ; 
+        
+        OBTENER DIAGNÓSTICO filas_eliminadas  =  ROW_COUNT  ; 
+         COMPROMETERSE  ; 
+        
+         -- Pequeña pausa para reducir carga 
+        EJECUTAR pg_sleep  (  0.1  )  ; 
+     FIN   DEL BUCLE  ; 
+ FIN  $$  ; 
+
+5. TRUNCAR vs. ELIMINAR
+Comparación Detallada
+SQL
+
+-- DELETE: Eliminación fila por fila 
+DELETE  FROM  tabla ;   -- Lento, registra en WAL, puede revertirse 
+
+-- TRUNCATE: Eliminación de toda la tabla 
+TRUNCATE  TABLE  tabla ;   -- Rápido, menos logging, auto-commit 
+
+-- TRUNCATE con opciones 
+TRUNCATE  TABLE  tabla 
+RESTART  IDENTITY   -- Reinicia las secuencias 
+CASCADE ;           -- También truncar tablas referenciadas 
+
+-- DELETE es más flexible 
+DELETE  FROM  tabla 
+ WHERE  condicion ;   -- TRUNCATE no permite WHERE 
+
+-- Comparación de rendimiento 
+/*
+DELETE: 
+- Registra cada fila eliminada en WAL
+- Dispara triggers ON DELETE
+- Mantiene los espacios de disco
+- Se puede usar en transacciones
+- Se puede hacer ROLLBACK
+
+TRUNCATE:
+- Más rápido (es una operación DDL)
+- No registra filas individuales
+- No dispara triggers ON DELETE
+- Libera espacio de disco
+- Auto-commit (no se puede hacer ROLLBACK)
+*/ 
+
+Cuándo Usar Cada Uno
+SQL
+
+-- Usar TRUNCATE cuando: 
+-- 1. Necesitas vaciar toda la tabla rápidamente 
+TRUNCATE  TABLE  logs_temporales ; 
+
+-- 2. Reiniciar IDs autoincrementales 
+TRUNCATE  TABLE  configuracion_test RESTART  IDENTITY ; 
+
+-- 3. Eliminar datos de tablas grandes 
+TRUNCATE  TABLE  datos_historicos ; 
+
+-- Usar DELETE cuando: 
+-- 1. Necesitas eliminar solo algunas filas 
+DELETE  FROM  usuarios  WHERE  activo  =  false ; 
+
+-- 2. Quieres usar transacciones 
+BEGIN ; 
+DELETE  FROM  pedidos  WHERE  estado  =  'pendiente' ; 
+-- Si algo sale mal: ROLLBACK; 
+COMMIT ; 
+
+-- 3. Necesitas que se disparen triggers 
+DELETE  FROM  productos  WHERE  id  =  100 ; 
+-- Trigger: INSERT INTO historico_eliminaciones ... 
+
+-- 4. Quieres registro detallado en WAL para replicación 
+DELETE  FROM  transacciones  WHERE  fecha  <  '2023-01-01' ; 
+
+6. ELIMINAR CON REGRESAR
+Obtener Datos Eliminados
+SQL
+
+-- Obtener IDs eliminados 
+DELETE  FROM  productos 
+ WHERE  stock  =  0 
+RETURNING  id ,  nombre ; 
+
+-- Obtener datos completos 
+DELETE  FROM  empleados 
+ WHERE  departamento_id  =  5 
+RETURNING  * ; 
+
+-- Usar en expresiones 
+DELETE  FROM  pedidos 
+ WHERE  estado  =  'cancelado' 
+AND  fecha  <  '2023-01-01' 
+RETURNING  
+    id , 
+    numero_pedido , 
+    total , 
+    'Eliminado por antigüedad'  AS  motivo ; 
+
+-- Con JOINs 
+DELETE  FROM  pedidos p
+ USING  clientes c
+ WHERE  p . cliente_id  =  c . id
+ AND  c . activo  =  false 
+RETURNING  
+    p . id , 
+    p . numero_pedido , 
+    c . nombre  AS  cliente , 
+    p . total ; 
+
+Usos Avanzados de RETURNING
+SQL
+
+-- Mover datos eliminados a tabla histórica
+WITH eliminados AS (
+    DELETE FROM logs
+    WHERE fecha < CURRENT_DATE - INTERVAL '365 days'
+    RETURNING *
+)
+INSERT INTO logs_historicos
+SELECT * FROM eliminados;
+
+-- Auditoría de eliminaciones
+DELETE FROM productos 
+WHERE categoria = 'Descontinuado'
+RETURNING 
+    id,
+    nombre,
+    categoria,
+    CURRENT_USER AS eliminado_por,
+    CURRENT_TIMESTAMP AS fecha_eliminacion
+INTO TEMP auditoria_eliminaciones;
+
+-- Eliminar y contar
+DELETE FROM sesiones 
+WHERE expirada = true
+RETURNING COUNT(*) AS total_eliminadas;
+
+7. DELETE EN CASCADA
+Configuración de Claves Foráneas
+SQL
+
+-- Crear tabla con DELETE CASCADE 
+CREATE  TABLE  pedidos  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    cliente_id  INT  NOT  NULL , 
+    FOREIGN  KEY  ( cliente_id )  
+        REFERENCES  clientes ( id )  
+        ON  DELETE  CASCADE 
+) ; 
+
+CREATE  TABLE  detalles_pedido  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    pedido_id  INT  NOT  NULL , 
+    FOREIGN  KEY  ( pedido_id )  
+        REFERENCES  pedidos ( id )  
+        ON  DELETE  CASCADE 
+) ; 
+
+-- Eliminar cliente y todos sus pedidos/detalles automáticamente 
+DELETE  FROM  clientes  WHERE  id  =  1 ; 
+-- Se eliminan automáticamente todos los pedidos y detalles relacionados 
+
+-- Ver restricciones existentes 
+SELECT 
+    tc . table_name ,  
+    kcu . column_name ,  
+    ccu . table_name  AS  foreign_table_name , 
+    ccu . column_name  AS  foreign_column_name , 
+    rc . delete_rule
+ FROM  information_schema . table_constraints  AS  tc 
+ JOIN  information_schema . key_column_usage  AS  kcu
+     ON  tc . constraint_name  =  kcu . constraint_name
+ JOIN  information_schema . constraint_column_usage  AS  ccu
+     ON  ccu . constraint_name  =  tc . constraint_name
+ JOIN  information_schema . referential_constraints  AS  rc
+     ON  rc . constraint_name  =  tc . constraint_name
+ DONDE  tc  .straint_type  '  =   CLAVE EXTRAÑA'  ; 
+
+Manejo Manual vs CASCADE
+SQL
+
+-- ❌ PROBLEMA: Sin CASCADE, hay que eliminar manualmente 
+BEGIN ; 
+-- Primero eliminar detalles 
+DELETE  FROM  detalles_pedido  WHERE  pedido_id  IN  ( 
+    SELECT  id  FROM  pedidos  WHERE  cliente_id  =  1 
+) ; 
+-- Luego eliminar pedidos 
+DELETE  FROM  pedidos  WHERE  cliente_id  =  1 ; 
+-- Finalmente eliminar cliente 
+DELETE  FROM  clientes  WHERE  id  =  1 ; 
+COMMIT ; 
+
+-- ✅ SOLUCIÓN: Con CASCADE es automático 
+DELETE  FROM  clientes  WHERE  id  =  1 ; 
+-- PostgreSQL maneja automáticamente la eliminación en cascada 
+
+-- Opciones de DELETE en FKs: 
+-- ON DELETE CASCADE: Elimina filas relacionadas 
+-- ON DELETE SET NULL: Establece NULL en la FK 
+-- ON DELETE SET DEFAULT: Establece valor por defecto 
+-- ON DELETE RESTRICT: Evita eliminación si hay referencias (por defecto) 
+-- ON DELETE NO ACTION: Similar a RESTRICT pero verifica al final 
+
+Cambiar Comportamiento de CASCADE
+SQL
+
+-- Agregar CASCADE a FK existente 
+ALTER  TABLE  detalles_pedido
+ DROP  CONSTRAINT  detalles_pedido_pedido_id_fkey , 
+ADD  CONSTRAINT  detalles_pedido_pedido_id_fkey
+     FOREIGN  KEY  ( pedido_id ) 
+    REFERENCES  pedidos ( id ) 
+    ON  DELETE  CASCADE ; 
+
+-- Cambiar de CASCADE a SET NULL 
+ALTER  TABLE  empleados
+ DROP  CONSTRAINT  empleados_departamento_id_fkey , 
+ADD  CONSTRAINT  empleados_departamento_id_fkey
+     FOREIGN  KEY  ( departamento_id ) 
+    REFERENCES  departamentos ( id ) 
+    ON  DELETE  SET  NULL ; 
+
+8. ELIMINACIÓN BLANDO VS. ELIMINACIÓN DURA
+Implementación de Soft Delete
+SQL
+
+-- Tabla con soft delete 
+CREATE  TABLE  productos  ( 
+    id  SERIAL  PRIMARY  KEY , 
+    nombre  VARCHAR ( 100 )  NOT  NULL , 
+    precio  DECIMAL ( 10 , 2 )  NOT  NULL , 
+    activo  BOOLEAN  DEFAULT  true , 
+    eliminado  BOOLEAN  DEFAULT  false , 
+    fecha_eliminacion  TIMESTAMP , 
+    eliminado_por  VARCHAR ( 100 ) , 
+    fecha_creacion  TIMESTAMP  DEFAULT  CURRENT_TIMESTAMP , 
+    fecha_actualizacion  TIMESTAMP  DEFAULT  CURRENT_TIMESTAMP 
+) ; 
+
+-- Vista para ver solo productos activos 
+CREATE  VIEW  productos_activos  AS 
+SELECT  *  FROM  productos  WHERE  eliminado  =  false ; 
+
+-- Trigger para soft delete 
+CREATE  OR  REPLACE  FUNCTION  soft_delete_producto ( ) 
+RETURNS  TRIGGER  AS  $$
+ BEGIN 
+    IF  OLD . eliminado  =  false  AND  NEW . eliminado  =  true  THEN 
+        NEW . fecha_eliminacion  =  CURRENT_TIMESTAMP ; 
+        NEW . eliminado_por  =  CURRENT_USER ; 
+        NEW . fecha_actualizacion  =  CURRENT_TIMESTAMP ; 
+        RETURN  NEW ; 
+    END  IF ; 
+    RETURN  NEW ; 
+END ; 
+$$  LANGUAGE  plpgsql ; 
+
+CREATE  TRIGGER  trigger_soft_delete
+BEFORE  UPDATE  ON  productos
+ FOR EACH ROW 
+EXECUTE  FUNCTION  soft_delete_producto ( ) ; 
+
+Operaciones con Soft Delete
+SQL
+
+-- "Eliminar" un producto (soft delete) 
+UPDATE  productos 
+ SET  
+    eliminado  =  true , 
+    activo  =  false 
+WHERE  id  =  1 ; 
+
+-- Restaurar producto eliminado 
+UPDATE  productos 
+ SET  
+    eliminado  =  false , 
+    fecha_eliminacion  =  NULL , 
+    eliminado_por  =  NULL 
+WHERE  id  =  1 ; 
+
+-- Consultar solo productos no eliminados 
+SELECT  *  FROM  productos  WHERE  eliminado  =  false ; 
+
+-- Consultar productos eliminados 
+SELECT  *  FROM  productos  WHERE  eliminado  =  true ; 
+
+-- Eliminación definitiva (hard delete) después de cierto tiempo 
+DELETE  FROM  productos 
+ WHERE  eliminado  =  true  
+AND  fecha_eliminacion  <  CURRENT_DATE  -  INTERVAL  '365 days' ; 
+
+Ventajas y Desventajas
+SQL
+
+/*
+SOFT DELETE (Ventajas):
+- Recuperación fácil de datos
+- Historial completo
+- Cumplimiento de regulaciones
+- Auditoría detallada
+
+SOFT DELETE (Desventajas):
+- Tablas más grandes
+- Consultas más complejas
+- Necesidad de vistas/filtros
+- Posibles problemas de rendimiento
+
+HARD DELETE (Ventajas):
+- Espacio liberado inmediatamente
+- Consultas más simples
+- Mejor rendimiento
+- Estructura más limpia
+
+HARD DELETE (Desventajas):
+- Pérdida permanente de datos
+- Sin posibilidad de recuperación
+- Problemas con referencias
+- Dificultad para auditoría
+*/ 
+
+9. BUENAS PRÁCTICAS
+Seguridad y Prevención
+SQL
+
+-- ❌ PELIGROSO: Sin WHERE 
+DELETE  FROM  usuarios ; 
+
+-- ✅ SEGURO: Siempre con WHERE explícito 
+DELETE  FROM  usuarios  WHERE  id  =  1 ; 
+
+-- ❌ PELIGROSO: Condición muy amplia 
+DELETE  FROM  pedidos  WHERE  estado  =  'pendiente' ; 
+
+-- ✅ MEJOR: Más específico 
+DELETE  FROM  pedidos 
+ WHERE  estado  =  'pendiente' 
+AND  fecha_creacion  <  CURRENT_DATE  -  INTERVAL  '30 days' 
+AND  total  <  100 ; 
+
+-- ✅ USAR: SELECT primero para verificar 
+SELECT  COUNT ( * )  FROM  pedidos 
+ WHERE  estado  =  'pendiente' 
+AND  fecha_creacion  <  CURRENT_DATE  -  INTERVAL  '30 days' ; 
+
+-- Luego ejecutar DELETE 
+DELETE  FROM  pedidos 
+ WHERE  estado  =  'pendiente' 
+AND  fecha_creacion  <  CURRENT_DATE  -  INTERVAL  '30 days' ; 
+
+Transacciones y Backups
+SQL
+
+-- ✅ SIEMPRE: Usar transacciones para eliminaciones importantes 
+BEGIN ; 
+
+-- 1. Crear backup de lo que se va a eliminar 
+CREATE  TABLE  backup_pedidos_2023  AS 
+SELECT  *  FROM  pedidos 
+ WHERE  fecha  <  '2023-01-01' ; 
+
+-- 2. Verificar conteo 
+SELECT  COUNT ( * )  FROM  backup_pedidos_2023 ; 
+
+-- 3. Eliminar en orden lógico (dependencias primero) 
+DELETE  FROM  detalles_pedido 
+ WHERE  pedido_id  IN  ( 
+    SELECT  id  FROM  pedidos 
+     WHERE  fecha  <  '2023-01-01' 
+) ; 
+
+-- 4. Eliminar datos principales 
+DELETE  FROM  pedidos 
+ WHERE  fecha  <  '2023-01-01' ; 
+
+-- 5. Verificar 
+SELECT  COUNT ( * )  FROM  pedidos  WHERE  fecha  <  '2023-01-01' ; 
+
+-- Si todo está bien 
+COMMIT ; 
+
+-- Si hay problemas 
+-- ROLLBACK; 
+
+Rendimiento y Mantenimiento
+SQL
+
+-- ❌ LENTO: Eliminar muchas filas de una vez 
+DELETE  FROM  logs  WHERE  fecha  <  '2020-01-01' ; 
+-- Puede bloquear la tabla por mucho tiempo 
+
+-- ✅ RÁPIDO: Eliminar en lotes 
+DO  $$
+ DECLARE 
+    batch_size  INT  : =  10000 ; 
+    rows_deleted  INT  : =  batch_size ; 
+BEGIN 
+    WHILE  rows_deleted  =  batch_size  LOOP 
+        DELETE  FROM  logs 
+         WHERE  id  IN  ( 
+            SELECT  id 
+             FROM  logs 
+             WHERE  fecha  <  '2020-01-01' 
+            ORDER  BY  fecha
+             LIMIT  batch_size
+         ) ; 
+        
+        GET DIAGNOSTICS rows_deleted  =  ROW_COUNT ; 
+        COMMIT ; 
+        
+        -- Pequeña pausa 
+        PERFORM pg_sleep ( 0.1 ) ; 
+    END  LOOP ; 
+END  $$ ; 
+
+-- ✅ OPTIMIZAR: Crear índice para DELETE frecuentes 
+CREATE  INDEX  idx_logs_fecha  ON  logs ( fecha ) ; 
+-- Útil cuando eliminas por rango de fechas frecuentemente 
+
+Concurrencia y Bloqueos
+SQL
+
+-- ❌ PROBLEMA: Bloqueo de tabla completa 
+ BORRAR   DE  transacciones 
+ WHERE  fecha  <   FECHA_ACTUAL   -   INTERVALO   '90 días'  ; 
+
+ -- ✅ SOLUCIÓN: Usar PARA ACTUALIZACIÓN SALTAR BLOQUEADO 
+ DO  $$
+ DECLARAR 
+    tamaño_lote  INT  :  =   1000  ; 
+    filas_eliminadas  INT  :  =  tamaño_lote  ; 
+ COMIENZA 
+     MIENTRAS  filas_eliminadas  =  tamaño_lote  BUCLE 
+         CON  lote  COMO   ( 
+             SELECCIONAR  id 
+             DESDE  transacciones 
+             DONDE  fecha  <   FECHA_ACTUAL   -   INTERVALO   '90 días' 
+             LÍMITE  tamaño_lote
+             PARA   ACTUALIZAR  SALTAR BLOQUEADO
+         ) 
+         ELIMINAR   DE  transacciones 
+         DONDE  id  EN   (  SELECCIONAR  id  DE  lote  )  ; 
+        
+        OBTENER DIAGNÓSTICOS filas_eliminadas  =  ROW_COUNT  ; 
+         CONFIRMACIÓN  ; 
+        
+        EJECUTAR pg_sleep  (  0.05  )  ; 
+     FIN   DEL BUCLE  ; 
+ FIN  $$  ; 
+
+10. EJEMPLOS CON PYTHON
+Clase Base para Eliminación Segura
+pitón
+
+importar  psycopg2
+ desde  psycopg2  importar  sql
+ desde  escribir  importar  Dict  ,  Lista  ,  Opcional  ,  Cualquiera
+  de importación registro 
+ desde  datetime  importar  datetime
+
+ clase   PostgreSQLDeleter  : 
+     def   __init__  (  self  ,  parámetros_de_conexión  )  : 
+        self  .  parámetros_de_conexión  =  parámetros_de_conexión
+        self  .  conn  =   Ninguno 
+        self.logger  __  logging.getLogger  =  "  def  (  name__  self  ) 
+    
+     (   connect  )  try  "  : 
+         """Establecer conexión 
+         :  " 
+            self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.parámetros_de_conexión ​ ​  ) 
+            ser  .  registrador  .  info  (  "Conexión establecida"  ) 
+             return  self  .  conectar
+         excepto  Excepción  como  e  : 
+            ser  .  registrador  .  error  (  f"Error de conexión:  {  e  }  "  ) 
+             plantear 
+    
+     def   desconectar  (  self  )  : 
+         """Cerrar conexión""" 
+         if  self  .  conexión  : 
+            auto  .  conexión  .  cerrar  (  ) 
+            ser  .  registrador  .  info  (  "Conexión cerrada"  ) 
+    
+     def   safe_delete  (  self  ,  table  :   str  ,  condition  :  Dict  ,  limit  :  Opcional  [  int  ]   =   Ninguno  )   -  >  Dict  : 
+         """Eliminación segura con validaciones""" 
+         if   not  self  .  conexión  : 
+            ser  .  conectar  (  ) 
+        
+         intentar  : 
+             con  uno mismo  .  conexión  .  cursor  (  )   as  cursor  : 
+                 # 1. Primero verificar cuántas filas se eliminarán 
+                cláusulas_donde =   [  ] 
+                where_values  ​​=   [  ] 
+                 para  clave  ,  valor  en  condición.items ​ ​  (  )  : 
+                    cláusulas_donde  .append  "  (  f"  {  clave  }  = %s  ) 
+                    where_values  ​​.append ​  (  valor  ) 
+                
+                count_query  =   f"""
+                    SELECCIONAR CUENTA(*) 
+                    DESDE  {  tabla  }  
+                    DONDE  {  ' Y '  .  unir  (  cláusulas_donde  )  } 
+                """ 
+                
+                cursor  .execute ​  (  consulta_conteo  ,  valores_donde  ) 
+                total_rows  =  cursor  .  fetchone  (  )  [  0  ] 
+                
+                 if  total_rows  ==   0  : 
+                     return   { 
+                         'success'  :   True  , 
+                         'message'  :   'No hay registros que coincidan con los criterios'  , 
+                         'rows_deleted'  :   0  , 
+                         'total_matching'  :   0 
+                     } 
+                
+                 # 2. Preguntar confirmación (en entorno interactivo) 
+                ser  .  registrador  .  advertencia  (  f"Se eliminarán  {  total_rows  }  registros de  {  table  }  "  ) 
+                
+                 # 3. Ejecutar DELETE con posible límite 
+                delete_query  =   f"BORRAR DE  {  tabla  }  DONDE  {  ' Y '  .  join  (  cláusulas_donde  )  }  " 
+                 si  límite  : 
+                    delete_query  +=   f" LÍMITE  {  límite  }  " 
+                
+                cursor .  ejecutar  (  eliminar_consulta  ,  donde_valores  ) 
+                filas_eliminadas  =  cursor  .  recuento_de_filas
+                
+                self.conn.commit  registros  :  ,  '  (  ) 
+                
+                 return   { 
+                     success'  :   True  , 
+                     'message'  f'Eliminados   {  rows_deleted  }  '  '  rows_deleted 
+                     '  :  filas_eliminadas  , 
+                     'total_matching'  :  total_rows
+                 } 
+                
+         excepto  psycopg2  .  Error  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            self.logger.error  '  {  ,  f" Error  (  en DELETE:  e  }  '  "  ) 
+             return   { 
+                 'success'  :   False  , 
+                 message'  :   'Error al eliminar registros'  error 
+                 '  :   str  (  e  )  , 
+                 'rows_deleted'  :   0 
+             } 
+    
+     def   delete_with_backup  (  self  ,  table  :   str  ,  condition  :  Dict  ,  backup_table  :   str  )   -  >  Dict  : 
+         "" 
+         if   not  self.conn  :  """Eliminar con backup  automático " 
+            self.connect ​  try  (  ) 
+        
+         :  backup 
+             with  self.conn.cursor  Crear  cursor  (  )  1.  tabla   as  #  : 
+                 de 
+                consulta_de_copia_de_seguridad  =   f"""
+                    CREAR TABLA SI NO EXISTE  {  backup_table  }  COMO 
+                    SELECCIONAR *, CURRENT_TIMESTAMP como fecha_de_copia_de_seguridad 
+                    DESDE  {  tabla  }  
+                    DONDE 1=0
+                """ 
+                cursor  .ejecutar  consulta_de_copia_de_seguridad  ( ​ ) 
+                
+                 # 2. Insertar datos a eliminar en copia de seguridad 
+                donde_cláusulas  =   [  ] 
+                where_values  ​​=   [  ] 
+                 para  clave  ,  valor  en  condición.items ​ ​  (  )  : 
+                    cláusulas_donde  .append  "  (  f"  {  clave  }  = %s  ) 
+                    where_values  ​​.append ​  (  valor  ) 
+                
+                insertar_consulta_de_copia_de_seguridad  =   f"""
+                    INSERTAR EN  {  tabla_de_copia_de_seguridad  }  
+                    SELECCIONAR *, MARCA_DE_TIEMPO_ACTUAL 
+                    DESDE  {  tabla  }  
+                    DONDE  {  ' Y '  .  unir  (  cláusulas_donde  )  } 
+                """ 
+                cursor  .execute ​  (  insertar_consulta_de_copia_de_seguridad  ,  donde_valores  ) 
+                filas_copiadas_de_seguridad  =  cursor  .  recuento_de_filas
+                
+                 # 3. Eliminar datos originales 
+                eliminar_consulta  =   f"""
+                    ELIMINAR DE  {  tabla  }  
+                    DONDE  {  ' Y '  .  unir  (  cláusulas_donde  )  } 
+                """ 
+                cursor  .execute ​  (  eliminar_consulta  ,  donde_valores  ) 
+                filas_eliminadas  =  cursor  .  recuento_de_filas
+                
+                auto  .  conexión  .  confirmación  ( ) 
+                
+                 return   { 
+                     'success'  :   True  , 
+                     'message'  :   f'Eliminados  {  rows_deleted  }  registros (backup:  {  backed_up_rows  }  )'  , 
+                     'rows_deleted'  :  rows_deleted  , 
+                     'backed_up_rows'  :  backed_up_rows
+                 } 
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            ser  .  registrador  .  error  (  f"Error en DELETE con backup:  {  e  }  "  ) 
+             return   { 
+                 'success'  :   False  , 
+                 'message'  :   'Error en operación de eliminación con backup'  , 
+                 'error'  :   str  (  e  ) 
+             } 
+    
+     def   batch_delete  (  self  ,  table  :   str  ,  condition  :  Dict  ,  batch_size  :   int   =   1000  )   -  >  Dict  : 
+         """Eliminación por lotes para grandes volúmenes""" 
+         si   no es  self  .  conexión  : 
+            self  .  connect  (  ) 
+        
+         intenta  : 
+            total_eliminados  =   0 
+            lotes  =   0 
+            
+             mientras   True  : 
+                 con  self.conn.cursor ​ ​  como  cursor  (  )   #  condición  : 
+                     Construir 
+                    donde_cláusulas  =   [  ] 
+                    where_values  ​​=   [  ] 
+                     para  clave  ,  valor  en  condición.items ​ ​  (  )  : 
+                        cláusulas_donde  .append  "  (  f"  {  clave  }  = %s  ) 
+                        where_values  ​​.  append  (  valor  ) 
+                    
+                     # ELIMINAR con LIMIT 
+                    eliminar_consulta  =   f"""
+                        ELIMINAR DE {  mesa  }  
+                        DONDE id EN (
+                            SELECCIONAR id 
+                            DESDE  {  tabla  }  
+                            DONDE  {  ' Y '  .  unir  (  cláusulas_donde  )  } 
+                            LÍMITE %s
+                        )
+                    """ 
+                    
+                    cursor  .execute  eliminar_consulta  ( ​  ,  donde_valores  +   [  tamaño_del_lote  ]  ) 
+                    filas_eliminadas  =  cursor  .  recuento_de_filas
+                    total_eliminados  +=  filas_eliminadas
+                    lotes  +=   1 
+                    
+                    auto  .  conexión  .  confirmación  (  ) 
+                    
+                    ser  .  registrador  .  info  (  f"Lote  {  lotes  }  : Eliminados  {  filas_deleted  }  registros"  ) 
+                    
+                     if  filas_deleted  <  tamaño_lote  : 
+                         break 
+                    
+                     # Pequeña pausa entre lotes 
+                     import  time
+                    tiempo  .  sleep  (  0.1  ) 
+            
+             return   { 
+                 'success'  :   True  , 
+                 'message'  :   f'Eliminación por lotes completada'  , 
+                 'total_deleted'  :  total_deleted  , 
+                 'batches'  :  batches
+             } 
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            auto  .  registrador . error ( f"Error en eliminación por lotes:  { e } " ) 
+            return  { 
+                'success' :  False , 
+                'message' :  'Error en eliminación por lotes' , 
+                'error' :  str ( e ) 
+            } 
+    
+    def  soft_delete ( self ,  table :  str ,  record_id :  int ,  user :  str  =  None )  - >  Dict : 
+        """Eliminación lógica (soft delete)""" 
+        if  not  self . conn : 
+            self . connect ( ) 
+        
+        try : 
+            with  self . conn . cursor ( )  as  cursor : 
+                # Verificar si la tabla tiene columnas para soft delete 
+                cursor . execute ( f"""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s 
+                    AND column_name IN ('eliminado', 'activo', 'fecha_eliminacion')
+                """ ,  ( table , ) ) 
+                
+                columns  =  [ row [ 0 ]  for  row  in  cursor . fetchall ( ) ] 
+                
+                if  not  columns : 
+                    return  { 
+                        'success' :  False , 
+                        'message' :  'La tabla no soporta soft delete' 
+                    } 
+                
+                # Construir UPDATE para soft delete 
+                set_clauses  =  [ ] 
+                params  =  [ ] 
+                
+                if  'eliminado'  in  columns : 
+                    set_clauses . append ( "eliminado = true" ) 
+                if  'activo'  en  columnas  : 
+                    establecer_cláusulas  .  append  (  "activo=false"  ) 
+                 si   'fecha_eliminacion'   en  columnas  : 
+                    establecer_cláusulas  .  append  (  "fecha_eliminacion = CURRENT_TIMESTAMP"  ) 
+                 si   'eliminado_por'   en  columnas  y  usuario  : 
+                    establecer_cláusulas  .  agregar  (  "eliminado_por=%s"  ) 
+                    params  .append ​  (  usuario  ) 
+                
+                consulta_de_actualización  =   f"""
+                    ACTUALIZAR  {  tabla  }  
+                    SET  {  ', '  .  join  (  set_clauses  )  } 
+                    DONDE id = %s
+                    DEVOLVIENDO id
+                """ 
+                
+                parámetros  .append ​  (  id_registro  ) 
+                cursor  .  ejecutar  (  update_query  ,  params  ) 
+                
+                 si  el cursor  .  recuento de filas  ==   0  : 
+                     retorno   { 
+                         'éxito'  :   Falso  , 
+                         'mensaje'  :   'Registro no encontrado' 
+                     } 
+                
+                ser  .  conexión  .  commit  (  ) 
+                
+                 return   { 
+                     'éxito'  :   Verdadero  , 
+                     'mensaje'  :   'Registro marcado como eliminado'  , 
+                     'record_id'  :  record_id
+                 } 
+                
+         excepto  Excepción  como  e  : 
+            auto  .  conexión  .  reversión  (  ) 
+            self  .  logger  .  error  (  f"Error en eliminación suave: { e } " ) 
+            return  { 
+                'success' :  False , 
+                'message' :  'Error en soft delete' , 
+                'error' :  str ( e ) 
+            } 
+
+# Ejemplo de uso 
+if  __name__  ==  "__main__" : 
+    # Configuración 
+    config  =  { 
+        'dbname' :  'empresa_db' , 
+        'user' :  'admin' , 
+        'password' :  'password' , 
+        'host' :  'localhost' 
+    } 
+    
+    # Configurar logging 
+    logging . basicConfig ( level = logging . INFO ) 
+    
+    deleter  =  PostgreSQLDeleter ( config ) 
+    deleter . connect ( ) 
+    
+    # 1. Eliminación segura 
+    result  =  deleter . safe_delete ( 
+        table = 'logs' , 
+        condition = { 'fecha' :  '2023-01-01' } , 
+        limit = 100 
+    ) 
+    print ( f"Eliminación segura:  { result } " ) 
+    
+    # 2. Eliminar con backup 
+    result  =  deleter . delete_with_backup ( 
+        table = 'pedidos' , 
+        condition = { 'estado' :  'cancelado' } , 
+        backup_table = 'backup_pedidos_cancelados' 
+    ) 
+    print ( f"Eliminación con backup:  { result } " ) 
+    
+    # 3. Eliminación por lotes 
+    result  =  deleter . batch_delete ( 
+        table = 'sesiones' , 
+        condition = { 'expirada' :  True } , 
+        batch_size = 500 
+    ) 
+    print ( f"Eliminación por lotes:  { result } " ) 
+    
+    # 4. Soft delete 
+    result  =  deleter . soft_delete ( 
+        table =  'productos'  , 
+        id_de_registro  =  100  , 
+        usuario  =  'admin' 
+     ) 
+     print  (  f"Eliminación suave:  {  resultado  }  "  ) 
+    
+    deletrear  .  desconectar  (  ) 
+
+Sistema Completo de Gestión de Eliminaciones
+pitón
+
+clase   DataCleanupManager  : 
+     def   __init__  (  self  ,  db_config  )  : 
+          mismo.db_config yo ​  =  db_config 
+        ser  .  conn  =   Ninguno 
+    
+     def   cleanup_old_data  (  self  ,  retención_days  :   int  )   -  >  Dict  : 
+         """Limpieza automática de datos antiguos""" 
+        resultados  =   {  } 
+        
+         intentar  : 
+            self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.db_config ​ ​  ) 
+            self  .  conn  .  autocommit  =   False 
+            
+             with  self  .  conn  .  cursor  (  )   as  cursor  : 
+                 # 1. Limpiar logs antiguos 
+                cursor  .ejecutar  (  "  ""
+                    ELIMINAR DE los registros 
+                    DONDE fecha < FECHA_ACTUAL - INTERVALO %s
+                    CONTADOR DE RETORNO(*)
+                """  ,   (  f"  {  días_de_retención  }  días"  ,  )  ) 
+                
+                registros_eliminados  =  cursor  .  fetchone  (  )  [  0  ] 
+                resultados  [  'logs'  ]   =  logs_deleted
+                
+                 # 2. Limpiar sesiones caducadas 
+                cursor  .ejecutar  (  "  ""
+                    ELIMINAR DE sesiones 
+                    DONDE fecha_expiracion < MARCA_DE_TIEMPO_ACTUAL
+                    CONTADOR DE RETORNO(*)
+                """  ) 
+                
+                sesiones_eliminadas =  cursor.fetchone   fetchone (  )  [  0 ] 
+                resultados  [  'sesiones'  ]   =  sesiones_eliminadas
+                
+                 # 3. Archivar y eliminar pedidos antiguos completados 
+                cursor.execute  (  "  "  )
+                    CREAR TABLA SI NO EXISTE historical_orders (
+                        Me gustan los pedidos que incluyen todos
+                    )
+                """  ) 
+                
+                cursor.execute  (  "  "  )
+                    CON movido COMO (
+                        INSERTAR EN pedidos_historicos 
+                        SELECCIONAR * DE pedidos 
+                        DONDE estado = 'completado'
+                        Y cerrar_completado < FECHA_ACTUAL - INTERVALO %s
+                        DEVOLVIENDO id
+                    )
+                    ELIMINAR DE detalles del pedido 
+                    DONDE order_id EN (SELECCIONAR id DE movido)
+                """  ,   (  f"  {  días_de_retención  *   2  }  días"  ,  )  ) 
+                
+                cursor.execute  (  "  "  )
+                    CON movido COMO (
+                        INSERTAR EN pedidos_historicos 
+                        SELECCIONAR * DE pedidos 
+                        DONDE estado = 'completado'
+                        Y cerrar_completado < FECHA_ACTUAL - INTERVALO %s
+                        DEVOLVIENDO id
+                    )
+                    ELIMINAR DE pedidos 
+                    DONDE id EN (SELECCIONAR id DE movido)
+                    CONTADOR DE RETORNO(*)
+                """ ,   (  f"  {  días_de_retención  *   2  }  días"  ,  )  ) 
+                
+                pedidos_eliminados  =  cursor  .  fetchone  (  )  [  0  ] 
+                resultados  [  'pedidos'  ]   =  pedidos_eliminados
+                
+                 # 4. Eliminar productos descontinuados sin stock 
+                cursor  .ejecutar  (  "  ""
+                    ELIMINAR DE productos 
+                    DONDE activo = falso
+                    Y stock = 0
+                    AND fecha_ultima_venta < FECHA_ACTUAL - INTERVALO %s
+                    CONTADOR DE RETORNO(*)
+                """  ,   (  f"  {  días_de_retención  *   4  }  días"  ,  )  ) 
+                
+                productos_eliminados  =  cursor  .  fetchone  (  )  [  0  ] 
+                resultados  [  'productos'  ]   =  productos_eliminados
+                
+                self.conn.commit  '  self.conn  '  '  (  ) 
+                
+                 return   { 
+                     success'  True   ,  ' 
+                     message'  :   de datos completada  , 
+                     '  :  resultados  , 
+                     total  :   suma  (  results.values  (  )  )  ' Limpieza  } 
+                 ' 
+                
+         except  Exception  as  e  : 
+             if  '  :  results  : 
+                self  .  conn  .  rollback  (  ) 
+             return   { 
+                 'success'  :   False  , 
+                 'message'  :   'Error en limpieza de datos'  , 
+                 'error'  :   str  (  e  )  , 
+                 'results'  :  resultados
+             } 
+         finalmente  : 
+             si  self.conn  : ​ ​ 
+                ser  .  conexión  .  close  (  ) 
+    
+     def   cascade_delete_customer  (  self  ,  customer_id  :   int  )   -  >  Dict  : 
+         """Eliminación en cascada de un cliente y todos sus datos""" 
+         try  : 
+            self.conn ​ ​  =  psycopg2.connect ​ ​  (  **  self.db_config ​ ​  ) 
+            self  .  conn  .  autocommit  =   False 
+            
+             with  self  .  conn  .  cursor  (  )   as  cursor  : 
+                 # 1. Crear copia de seguridad completa 
+                marca_de_tiempo_de_copia_de_seguridad  =  fecha_y_hora  .  now  (  )  .  strftime  (  '%Y%m%d_%H%M%S'  ) 
+                tabla_de_copia_de_seguridad  =   f"cliente_de_copia_de_seguridad_  {  id_del_cliente  }  _  {  marca_de_tiempo_de_copia_de_seguridad  }  " 
+                
+                cursor  .ejecutar  "  (  f"" 
+                    CREAR TABLA  {  tabla_de_respaldo  }  COMO
+                    SELECCIONAR 'cliente' como tabla, * DE clientes DONDE id = %s
+                    UNIÓN TODOS
+                    SELECCIONE 'pedidos' como tabla, * DESDE pedidos DONDE cliente_id = %s
+                    UNIÓN TODOS
+                    SELECCIONE 'detalles' como tabla, pd.* 
+                    DE detalles_pedido pd
+                    ÚNETE a pedidos p ON pd.pedido_id = p.id
+                    DONDE p.cliente_id = %s
+                """ ,   (  customer_id  ,  customer_id  ,  customer_id  )  ) 
+                
+                 # 2. Verifique que la copia de seguridad se haya creado correctamente 
+                cursor  .execute  FROM  (  f"SELECT COUNT(*)  {  backup_table  }  "  ) 
+                backup_count  =  cursor  .  fetchone  (  )  [  0  ] 
+                
+                 # 3. Eliminar en el orden correcto (primero las dependencias) 
+                 # Detalles del pedido 
+                cursor.execute  (  "  "  )
+                    ELIMINAR DE detalles del pedido 
+                    DONDE order_id EN (
+                        SELECCIONAR id DE pedidos DONDE customer_id = %s
+                    )
+                """  ,   (  id_del_cliente  ,  )  ) 
+                detalles_eliminados  =  cursor  .  rowcount
+                
+                 # Pedidos 
+                cursor.execute  (  "  "  )
+                    ELIMINAR DE pedidos 
+                    DONDE client_id = %s
+                """  ,   (  id_del_cliente  ,  )  ) 
+                pedidos_eliminados  =  cursor  .  rowcount
+                
+                 # Cliente 
+                cursor.execute  (  "  "  )
+                    ELIMINAR DE clientes 
+                    DONDE id = %s
+                    DEVOLVIENDO id, nombre, correo electrónico
+                """ ,   (  id_del_cliente  ,  )  ) 
+                
+                cliente_eliminado  =  cursor  .  fetchone  (  ) 
+                
+                 # 4. Registrador en auditoría 
+                cursor  .ejecutar  (  "  ""
+                    INSERT INTO auditoria_eliminaciones (
+                        tipo_eliminacion,
+                        usuario_id,
+                        detalles,
+                        fecha
+                    ) VALORES (%s, %s, %s, MARCA_DE_TIEMPO_ACTUAL)
+                """  ,   ( 
+                     'cascade_customer'  , 
+                    customer_id  , 
+                     f"Eliminado cliente  {  customer_id  }  con  {  pedidos_deleted  }  pedidos y  {  detalles_deleted  }  detalles" 
+                 )  ) 
+                
+                self.conn.commit  )  ,  '  :  (  : 
+                
+                 return   { 
+                     'success'  True   ,  ' 
+                     message'  :   Cliente eliminado exitosamente'  , 
+                     'customer'  :  cliente_eliminado  , 
+                     'orders_deleted'  :  pedidos_eliminados  , 
+                     'details_deleted'  ,  detalles_eliminados  ' 
+                     backup_table'  :  tabla_de_copias_de_seguridad  ' 
+                     'backup_count  :  recuento_de_copias_de_seguridad
+                 } 
+                
+         excepto  Excepción  como  e  : 
+             si  self  .  conn  : 
+                self  .  conn  .  rollback  (  ) 
+             return   { 
+                 'success'  :   False  , 
+                 'message'  :   'Error al eliminar cliente'  , 
+                 'error' :  str ( e ) , 
+                'customer_id' :  customer_id
+             } 
+        finally : 
+            if  self . conn : 
+                self . conn . close ( ) 
+
+# Uso del gestor de limpieza 
+if  __name__  ==  "__main__" : 
+    db_config  =  { 
+        'dbname' :  'empresa_db' , 
+        'user' :  'admin' , 
+        'password' :  'password' , 
+        'host' :  'localhost' 
+    } 
+    
+    manager  =  DataCleanupManager ( db_config ) 
+    
+    # Limpieza automática (90 días de retención) 
+    cleanup_result  =  manager . cleanup_old_data ( retention_days = 90 ) 
+    print ( f"Resultado limpieza:  { cleanup_result } " ) 
+    
+    # Eliminación en cascada de cliente 
+    delete_result  =  manager . cascade_delete_customer ( customer_id = 100 ) 
+    print ( f"Resultado eliminación cliente:  { delete_result } " ) 
+
+Sistema con Reintentos y Manejo de Errores
+pitón
+
+ de importación tiempo 
+ desde  escribir  importar  Callable
+
+ clase   SafeDeleteManager  : 
+     def   __init__  (  self  ,  db_config  ,  max_retries  =  3  )  : 
+          mismo.db_config yo ​  =  db_config 
+        self  .max_retries ​  =  max_retries 
+    
+     def   execute_with_retry  (  self  ,  delete_func  :  Callable  ,   *  args  ,   **  kwargs  )   -  >  Dict  : 
+         ""Ejecutar DELETE con reintentos en caso de 
+         for  attempt  in   range  (  self.max_retries  and  error  )  : 
+             try  : 
+                 return  delete_func  (  *  args  ,   **  kwargs  ) 
+                
+             except  psycopg2.OperationalError  "  )  as  e  : 
+                 if   deadlock   in   str  (  e  )  .lower  (  "  "   <  attempt  1  self.max_retries  :  -  '   '  " 
+                    wait_time  =   2   **  intento  # Backoff exponencial 
+                     print  (  f"Deadlock detectado, reintentando en  {  wait_time  }  s..."  ) 
+                    tiempo  .  sleep  (  tiempo_espera  ) 
+                     continuar 
+                 de lo contrario  : 
+                     generar 
+            
+             excepto  Excepción  como  e  : 
+                 si  intento  <  self  .  max_retries  -   1  : 
+                     imprimir  (  f"Error detectado, reintentando... (Intento  {  intento  +   1  }  )"  ) 
+                    time  .  sleep  (  1  ) 
+                     continue 
+                 else  : 
+                     raise 
+    
+     def   delete_with_foreign_key_check  (  self  ,  table  :   str  ,  record_id  :   int  )   -  >  Dict  : 
+         """DELETE con verificación de referencias externas""" 
+         def   delete_operation  (  )  : 
+            conexión =  psicopg2  .  connect  (  **  self.db_config ​ ​  ) 
+             prueba  : 
+                 con  conn  .  cursor  (  )   como  cursor  : 
+                     # 1. Verificar referencias externas 
+                    cursor  .ejecutar  (  "  ""
+                        SELECCIONAR 
+                            tc.nombre_de_tabla, 
+                            kcu.nombre_de_columna,
+                            ccu.table_name AS tabla_referenciada
+                        DESDE information_schema.table_constraints COMO tc 
+                        UNIRSE a información_esquema.clave_columna_uso COMO kcu
+                            EN tc.nombre_de_restricción = kcu.nombre_de_restricción
+                        UNIRSE a información_esquema.restricción_columna_uso COMO ccu
+                            EN ccu.nombre_de_restricción = tc.nombre_de_restricción
+                        DONDE tc.constraint_type = 'CLAVE EXTERNA'
+                        Y ccu.nombre_de_tabla = %s
+                        Y ccu.column_name = 'id'
+                    """  ,   (  mesa  ,  )  ) 
+                    
+                    claves_extranjeras  =  cursor  .  fetchall  (  ) 
+                    
+                     if  Foreign_keys  : 
+                         # Hay referencias, verificar si hay datos relacionados 
+                        referencias  =   [  ] 
+                         para  fk_table  ,  fk_column  ,  _  en  claves_externas  : 
+                            cursor  .ejecutar  "  (  f"" 
+                                SELECCIONAR CUENTA(*) 
+                                DESDE  {  fk_table  }  
+                                DONDE  {  fk_column  }  = %s
+                            """  ,   (  id_de_registro  ,  )  ) 
+                            count  =  cursor  .  fetchone  (  )  [  0  ] 
+                             si  count  >   0  : 
+                                referencias  .append  :  (  { 
+                                     'tabla'  :  fk_table  , 
+                                     'columna'  :  fk_column  , 
+                                     'conteo  '  conteo
+                                 }  ) 
+                        
+                         if  references  : 
+                             return   { 
+                                 'success'  :   False  , 
+                                 'message'  :   'No se puede eliminar, hay referencias externas'  , 
+                                 'references'  :  references  , 
+                                 'suggestion'  :   'Usar DELETE CASCADE o eliminar referencias primero' 
+                             } 
+                    
+                     # 2. Ejecutar DELETE 
+                    cursor  .ejecutar  "  (  f"" 
+                        ELIMINAR DE  {  tabla  }  
+                        DONDE id = %s
+                        DEVOLVIENDO id
+                    """  (   record_id  ,  )  )  if 
+                    
+                     cursor.rowcount  ==  ,  return  0   :  : 
+                         {   ' 
+                             '  éxito   False  , 
+                             'mensaje'  :   'Registro no encontrado' 
+                        } 
+                    
+                    conexión  .  commit  (  ) 
+                    
+                     return   { 
+                         'success'  :   True  , 
+                         'message'  :   'Registro eliminado exitosamente'  , 
+                         'record_id'  :  record_id
+                     } 
+                    
+             finalmente  : 
+                conn.close  (  "  )  __name__ 
+        
+         return  reintentos  self.execute_with_retry  con  (  delete_operation  ) 
+
+ # Uso 
+ if  ==  :   __main__  " 
+    db_config  =   { 
+         'dbname'  :   'empresa_db'  , 
+         'usuario'  :   'admin'  , 
+         'contraseña'  :   'contraseña'  , 
+         'host'  :   'localhost' 
+     } 
+    
+    safe_manager  =  SafeDeleteManager  (  db_config  ) 
+    
+     intenta  : 
+        resultado  =  administrador_seguro  .  delete_with_foreign_key_check  (  'clientes'  ,   100  ) 
+         print  (  f"Resultado eliminación segura:  {  resultado  }  "  ) 
+     excepto  Excepción  como  e  : 
+         print  (  f"Error después de reintentos:  {  e  }  "  ) 
+
+EJERCICIOS PRÁCTICOS
+Nivel Básico:
+
+    Eliminar registros específicos por ID o condición simple
+
+    Limpiar datos temporales como sesiones expiradas
+
+    Eliminar duplicados manteniendo solo el registro más reciente 
+
+Nivel Intermedio:
+
+    DELETE con JOINs para eliminar datos relacionados
+
+    Implementar soft delete en una tabla existente
+
+    Limpieza programada de logs y datos temporales 
+
+Nivel Avanzado:
+
+    Sistema de eliminación en cascada con validación de referencias
+
+    DELETE por lotes optimizado para millones de registros
+
+    Sistema completo de archivado con backup automático 
+
+CONSEJOS FINALES
+Para Seguridad Máxima:
+
+    NUNCA ejecutes DELETE sin WHERE a menos que sea absolutamente necesario
+
+    Usa transacciones y haz COMMIT solo después de verificar
+
+    Crea backups automáticos antes de eliminaciones importantes
+
+    Implementa permisos para restringir DELETE a usuarios específicos 
+
+Para Rendimiento:
+
+    Usa índices en columnas del WHERE
+
+    Elimina en lotes grandes volúmenes de datos
+
+    Considera TRUNCATE para vaciar tablas completas
+
+    Programa eliminaciones en horas de baja actividad 
+
+Para Mantenibilidad:
+
+    Documenta las políticas de retención de datos
+
+    Implementa soft delete cuando sea posible
+
+    Mantén auditoría de eliminaciones importantes
+
+    Crea scripts automatizados para limpieza periódica 
+
+Para Concurrencia:
+
+    Usa FOR UPDATE SKIP LOCKED en operaciones batch
+
+    Implementa reintentos para manejar deadlocks
+
+    Considera versionado optimista para evitar conflictos
+
+    Monitoriza bloqueos durante eliminaciones masivas 
+
+¿Te gustaría profundizar en algún aspecto específico de DELETE? Por ejemplo:
+
+    Estrategias de archivado para datos históricos
+
+    Sistemas de purge automatizados con programación
+
+    Recuperación de datos después de eliminaciones accidentales
+
+    DELETE en tablas particionadas para mejor rendimiento 
+
+¡Continuemos fortaleciendo tus habilidades en PostgreSQL! 🚀 
