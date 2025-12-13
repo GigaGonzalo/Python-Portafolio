@@ -170,7 +170,7 @@ class SistemaInventario():
                                 mod_articulo.set_nom_producto(self.gestor_ar.mod_nombre())
                             elif op == "4":
                                 self.limpiar_pantalla()
-                                mod_articulo.set_descripcion(self.gestor_ar.mod_descripcion(9))
+                                mod_articulo.set_descripcion(self.gestor_ar.mod_descripcion())
                             elif op == "5":
                                 mod_articulo.set_precio(self.gestor_ar.mod_precio())
                             elif op == "6":

@@ -2,7 +2,7 @@
 from cat_enum import Categorias
 from sistema_bd import GestorBD
 import colorama
-from colorama import Fore, Style, init
+from colorama import Fore, Style, init, Back
 
 init(autoreset=True)
 
