@@ -1,8 +1,9 @@
 from sistema_bd import GestorBD
 from cat_enum import Categorias
 from articulo import Articulo
+from articulo import GestorArticulo
 import colorama
-from colorama import Fore, Style, init
+from colorama import Fore, Style, init, Back
 import os
 
 init(autoreset=True)
@@ -13,25 +14,30 @@ class SistemaInventario():
         self.gestor.verificar_db()
         self.gestor.crear_tabla_articulos()
 
+        self.gestor_ar = GestorArticulo()
+
     def registro_nuevo_producto(self):
         nuevo_articulo = Articulo()
         self.limpiar_pantalla()
-        nuevo_articulo.set_categoria()
+        nuevo_articulo.set_categoria(self.gestor_ar.mod_categoria())
         self.limpiar_pantalla()
-        nuevo_articulo.set_codigo()
+        nuevo_articulo.set_codigo(self.gestor_ar.mod_codigo())
         self.limpiar_pantalla()
-        nuevo_articulo.set_nom_producto()
+        nuevo_articulo.set_nom_producto(self.gestor_ar.mod_nombre())
         self.limpiar_pantalla()
-        nuevo_articulo.set_descripcion()
+        nuevo_articulo.set_descripcion(self.gestor_ar.mod_descripcion())
         self.limpiar_pantalla()
-        nuevo_articulo.set_precio()
+        nuevo_articulo.set_precio(self.gestor_ar.mod_precio())
         self.limpiar_pantalla()
-        nuevo_articulo.set_existencia()
+        nuevo_articulo.set_existencia(self.gestor_ar.mod_existencias())
         self.limpiar_pantalla()
         
         nuevo_articulo = nuevo_articulo.conv_tupla()
 
         self.gestor.insertar_nuevo_articulo_bd(nuevo_articulo)
+
+        input("Presione ENTER para regresar al menu")
+        self.menu_principal()
 
     def visualizar_articulos_menu(self):
         self.limpiar_pantalla()
@@ -87,7 +93,7 @@ class SistemaInventario():
                     precio = input("Ingrese PRECIO del articulo a buscar : \n").strip()
                     try:
                         if float(precio) > 0:
-                            b_articulos = self.gestor.visualizar_articulos("precio" ,float(precio))
+                            b_articulos = self.gestor.visualizar_articulos("precio" ,precio)
                             if b_articulos != []:
                                 for b_articulo in b_articulos:
                                     print(f" Codigo : {b_articulo[2]} \n Categoria : {b_articulo[1]}"+
@@ -155,21 +161,21 @@ class SistemaInventario():
                         if op in ("1","2","3","4","5","6","7"):
                             if op == "1":
                                 self.limpiar_pantalla()
-                                mod_articulo.set_categoria()
+                                mod_articulo.set_categoria(self.gestor_ar.mod_categoria())
                             elif op == "2":
                                 self.limpiar_pantalla()
-                                mod_articulo.set_codigo()
+                                mod_articulo.set_codigo(self.gestor_ar.mod_codigo())
                             elif op == "3":
                                 self.limpiar_pantalla()
-                                mod_articulo.set_nom_producto()
+                                mod_articulo.set_nom_producto(self.gestor_ar.mod_nombre())
                             elif op == "4":
                                 self.limpiar_pantalla()
-                                mod_articulo.set_descripcion()
+                                mod_articulo.set_descripcion(self.gestor_ar.mod_descripcion(9))
                             elif op == "5":
-                                mod_articulo.set_precio()
+                                mod_articulo.set_precio(self.gestor_ar.mod_precio())
                             elif op == "6":
                                 self.limpiar_pantalla()
-                                mod_articulo.set_existencia()
+                                mod_articulo.set_existencia(self.gestor_ar.mod_descripcion())
                             elif op == "7":
                                 self.limpiar_pantalla()
                                 self.gestor.modificar_articulo(mod_articulo.conv_tupla(), index)

@@ -15,6 +15,37 @@ class GestorBD():
         self.nombre_bd = "bd_inventario"
         self.c_creacion = sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.nombre_bd))
         
+    def _usar_conexion_(self, consulta , datos_tupla = None, retorno = False):
+        if datos_tupla == None:
+            datos_tupla = ()
+
+        try:
+            conexion = psycopg2.connect(
+                dbname=self.nombre_bd ,
+                host=self.host ,
+                user=self.user ,
+                password= self.passw ,
+                port= self.port
+                )
+            conexion.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            with conexion:
+                with conexion.cursor() as cur:
+                    if datos_tupla != () and retorno == True:
+                        cur.execute(consulta, datos_tupla)
+                        articulos = cur.fetchall()
+                        return articulos
+                    elif datos_tupla != () and retorno == False:
+                        cur.execute(consulta, datos_tupla)
+                        return True
+                    else:
+                        cur.execute(consulta)
+                        articulos = cur.fetchall()
+                        return articulos
+        except (psycopg2.DatabaseError, Exception) as e:
+            print(f"Error en la Base de Datos {e}")
+        finally:
+            if conexion:
+                conexion.close()
 
     def _abrir_conexion_(self):
         try:
@@ -48,81 +79,61 @@ class GestorBD():
                 print(f"{Fore.RED}Error al cerrar conexion {e}")
 
     def insertar_nuevo_articulo_bd(self, n_articulo):
-        conexion , cur = self._abrir_conexion_()
-        try:
-            consulta = sql.SQL("INSERT INTO lista_articulos(categoria, codigo, nombre_articulo, descripccion ," +
-            "precio , existencias)" + " VALUES(%s,%s,%s,%s,%s,%s);")
-            cur.execute(consulta, n_articulo)
+        consulta = sql.SQL("INSERT INTO lista_articulos(categoria, codigo, nombre_articulo, descripccion ," +
+        "precio , existencias)" + " VALUES(%s,%s,%s,%s,%s,%s);")
+        confirmacion = self._usar_conexion_(consulta, n_articulo , False)
+        if confirmacion:
             print(f"{Fore.GREEN}{Style.DIM}ARTICULO AGREGADO CORRECTAMENTE!")
-            self._cerrar_conexion_(conexion, cur)
-        except Exception as e:
-            print(f"{Fore.RED}Error al cargar nuevo articulo {e}")
 
     def modificar_articulo(self, n_valores, indice):
-        conexion , cur = self._abrir_conexion_()
-        try:
             n_v = (n_valores[0],n_valores[1],n_valores[2],n_valores[3],n_valores[4],n_valores[5],indice)
             consulta = sql.SQL("UPDATE lista_articulos SET categoria = %s , codigo = %s ,"+
             "nombre_articulo = %s , descripccion = %s , precio = %s , existencias = %s WHERE indice = %s;")
-            cur.execute(consulta,n_v)
-            print(f"{Fore.GREEN}{Style.DIM}ARTICULO ACTUALIZADO!")
-            self._cerrar_conexion_(conexion, cur)
-        except Exception as e:
-            print(f"{Fore.RED}Error al actualizar el articulo {e}")
+            confirmacion = self._usar_conexion_(consulta , n_v , False)
+            if confirmacion:
+                print(f"{Fore.GREEN}{Style.DIM}ARTICULO ACTUALIZADO!")
 
     def visualizar_articulo(self, index):
-        try:
-            conexion, cur = self._abrir_conexion_()
-            consulta = sql.SQL("SELECT * FROM lista_articulos WHERE codigo = %s;")
-            cur.execute(consulta, (index,))
-            articulo = cur.fetchall()
-            if articulo != []:
-                return articulo[0]
-            else:
-                return []
-            
-        except Exception as e:
-            print(f"{Fore.RED}Error al extraer datos del articulo N. {index} , {e}")
+        consulta = sql.SQL("SELECT * FROM lista_articulos WHERE codigo = %s;")
+        t_index = (index,)
+        articulo = self._usar_conexion_(consulta,t_index,True)
+        if articulo != []:
+            return articulo[0]
+        else:
+            return []
 
     def visualizar_articulos(self, param , valor):
-        try:
-            valor = '%'+valor+'%'
-            print(valor)
-            conexion, cur = self._abrir_conexion_()
-            consulta = sql.SQL("SELECT * FROM lista_articulos WHERE " + param + " LIKE %s;")
-            cur.execute(consulta, (valor,))
-            articulos = cur.fetchall()
-            if articulos != []:
-                return articulos
-            else:
-                return []
-            
-        except Exception as e:
-            print(f"{Fore.RED}Error al extraer datos del articulo , {e}")
-
+        
+        if param in ("precio", "existencias"):
+            consulta = sql.SQL("SELECT * FROM lista_articulos WHERE {} = %s;").format(sql.Identifier(param))
+            t_valor = (float(valor) if param == "precio" else int(valor),)
+            print(t_valor)
+            articulos = self._usar_conexion_(consulta,t_valor,True)
+        else:
+            valor = '%'+str(valor)+'%'
+            consulta = sql.SQL("SELECT * FROM lista_articulos WHERE {} LIKE %s;").format(sql.Identifier(param))
+            t_valor = (valor,)
+            articulos = self._usar_conexion_(consulta , t_valor, True)
+        print(articulos)
+        if articulos != []:
+            return articulos
+        else:
+            return []
+        
     def visualizar_total_articulos(self):
-        try:
-            conexion, cur = self._abrir_conexion_()
-            consulta = sql.SQL("SELECT * FROM lista_articulos;")
-            cur.execute(consulta)
-            articulos = cur.fetchall()
-            if articulos != []:
-                return articulos
-            else:
-                return []
-            
-        except Exception as e:
-            print(f"{Fore.RED}Error al extraer datos del articulo N. {index} , {e}")
+        
+        consulta = sql.SQL("SELECT * FROM lista_articulos;")
+        articulos = self._usar_conexion_(consulta, None , True)
+        if articulos != []:
+            return articulos
+        else:
+            return []
 
     def eliminar_articulo(self, index):
-        try:
-            conexion , cur = self._abrir_conexion_()
             consulta = sql.SQL("DELETE FROM lista_articulos WHERE indice = %s;")
-            cur.execute(consulta, (index,))
-            print(f"{Fore.RED}{Style.DIM}ARTICULO CORRECTAMENTE ELIMINADO")
-            self._cerrar_conexion_(conexion, cur)
-        except Exception as e:
-            print(f"{Fore.RED}Error al eliminar articulo N. {index} , {e}")
+            confirmacion = self._usar_conexion_(consulta, (index,),False)
+            if confirmacion:
+                print(f"{Fore.RED}{Style.DIM}ARTICULO CORRECTAMENTE ELIMINADO")
 
     def verificar_db(self):
         try:
