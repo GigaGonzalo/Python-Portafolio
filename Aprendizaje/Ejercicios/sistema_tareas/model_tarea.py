@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Tarea():
 
-    def __init__(usuario = 0 , titulo = "Titulo", descripcion = "Descricion", caategoria = CategoriasTareas(0).name,
+    def __init__(self, usuario = 0 , titulo = "Titulo", descripcion = "Descripcion", categoria = CategoriasTareas(0).name,
      recordatorio = False, fecha = "--/--/----", horario = "--:--"):
 
         self.usuario = usuario
@@ -15,25 +15,25 @@ class Tarea():
         self.r_fecha = fecha
         self.r_horario = horario
 
-    def set_usuario(self, usu:str):
+    def _set_usuario(self, usu:str):
         self.usuario = usu
 
-    def set_titulo(self, tit:str):
+    def _set_titulo(self, tit:str):
         self.titulo = tit
 
-    def set_desc(self, desc:str):
+    def _set_desc(self, desc:str):
         self.descripcion = desc
 
-    def set_categoria(self, cat:str):
+    def _set_categoria(self, cat:str):
         self.categoria = cat
 
-    def set_recordatorio(self, rec:bool):
+    def _set_recordatorio(self, rec:bool):
         self.recordatorio = rec
 
-    def set_fecha(self, fecha:str):
+    def _set_fecha(self, fecha:str):
         self.r_fecha = fecha
 
-    def set_horario(self, horario:str):
+    def _set_horario(self, horario:str):
         self.r_horario = horario
 
     @property
@@ -121,7 +121,7 @@ class GestorTarea():
                 print("Ingrese una cifra valida para el dia")
         
         while True:
-            mes = inputinput("Ingrese el mes")
+            mes = input("Ingrese el mes")
             if int(mes) >= 1 and int(mes) <= 12:
                 mes = int(mes)
                 break
@@ -129,7 +129,7 @@ class GestorTarea():
                 print("Ingrese una cifra valida para el mes")
         
         while True:
-            an = inputinput("Ingrese el año")
+            an = input("Ingrese el año")
             if int(an) >= 2025 and int(an) <= 2030:
                 an = int(an)
                 break
@@ -150,7 +150,7 @@ class GestorTarea():
                 print("Ingrese una cifra valida para la hora")
         
         while True:
-            minutos = inputinput("Ingrese los minutos")
+            minutos = input("Ingrese los minutos")
             if int(minutos) >= 0 and int(minutos) <= 59:
                 minutos = int(minutos)
                 break

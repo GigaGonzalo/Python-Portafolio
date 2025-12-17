@@ -1,6 +1,6 @@
 from enum import Enum
 
-class CategoriasTareas:
+class CategoriasTareas(Enum):
 
     SIN_CATEGORIA = 0
     HOGAR = 1
